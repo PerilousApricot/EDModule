@@ -10,18 +10,12 @@
 #ifndef TOP_EDANALYZERS_NTUPLE_MAKER
 #define TOP_EDANALYZERS_NTUPLE_MAKER
 
+#include <string>
+
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-
-namespace reco
-{
-    namespace helper
-    {
-        class JetIDHelper;
-    }
-}
 
 class TFile;
 class TTree;
@@ -40,26 +34,38 @@ class NtupleMaker : public edm::EDAnalyzer
         virtual void analyze(const edm::Event &, const edm::EventSetup &);
         virtual void endJob();
 
-        TFile *theFile;
-        TTree *ftree;
-        float muon_pt_;
-        float muon_eta_;
-        float muon_phi_;
-        float muon_chi2_;
-        int muon_muonhits_;
-        int muon_trackerhits_;
-        float muon_jet_dr_;
-        float muon_d0_;
-        float muon_d0Error_;
-        float muon_old_reliso_;
-        int TrackerMu_;
-        float jet_pt_[20];
-        size_t njets_;
-        float met_;
-        float w_mt_;
-        edm::TriggerNames hltNames_;
-        reco::helper::JetIDHelper *jetID;
-        edm::InputTag hltTag_;
+        bool processTrigger(const edm::Event &);
+        bool processPrimaryVertex(const edm::Event &);
+
+        TFile *_ntuple;
+        TTree *_tree;
+
+        std::string _electronCollection;
+        std::string _muonCollection;
+        std::string _jetCollection;
+        std::string _metCollection;
+
+        struct Muon
+        {
+            float pt;
+            float eta;
+            float phi;
+            float d0;
+            float d0err;
+            float oldRelIso;
+            float chi2;
+            int   muonHits;
+            int   trackerHits;
+            float deltaR;
+            int   isTracker;
+            int   isGlobal;
+        };
+
+        Muon   _muon;
+        size_t _njets;
+        float  _jet_pt[20];
+        float  _met;
+        float  _w_mt;
 };
 
 #endif
