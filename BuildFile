@@ -1,0 +1,20 @@
+<use name=root>
+<use name=DataFormats/BeamSpot>
+<use name=DataFormats/Common>
+<use name=DataFormats/EgammaCandidates>
+<use name=DataFormats/JetReco>
+<use name=DataFormats/Math>
+<use name=DataFormats/MuonReco>
+<use name=DataFormats/METReco>
+<use name=DataFormats/VertexReco>
+<use name=FWCore/Common>
+<use name=FWCore/Framework>
+<use name=FWCore/ParameterSet>
+<use name=FWCore/Utilities>
+<use name=RecoJets/JetAlgorithms>
+
+<flags EDM_PLUGIN=1>
+
+<export>
+    <lib name=TopEDAnalyzers>
+</export>
