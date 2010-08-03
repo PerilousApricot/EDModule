@@ -13,7 +13,7 @@
 <use name=FWCore/Utilities>
 <use name=RecoJets/JetAlgorithms>
 
-<flags EDM_PLUGIN=1>
+<flags EDM_PLUGIN="1">
 
 <export>
     <lib name=TopEDAnalyzers>

@@ -39,7 +39,7 @@ using namespace edm;
 using namespace reco;
 using reco::helper::JetIDHelper;
 
-NtupleMaker::NtupleMaker(const edm::ParameterSet& iConfig):
+NtupleMaker::NtupleMaker(const edm::ParameterSet &iConfig):
   hltTag_(iConfig.getParameter<InputTag>("hltTag"))
 {
    //now do what ever initialization is needed
@@ -257,7 +257,6 @@ void NtupleMaker::analyze(const edm::Event& iEvent,
     ftree->Fill();
 }
 
-// ------------ method called once each job just before starting event loop  ------------
 void NtupleMaker::beginJob()
 {
     theFile = new TFile("ttmuj_ntuple.root", "RECREATE");
@@ -290,5 +289,4 @@ void NtupleMaker::endJob()
     delete theFile;
 }
 
-//define this as a plug-in
 DEFINE_FWK_MODULE(NtupleMaker);

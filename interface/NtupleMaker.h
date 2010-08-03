@@ -12,6 +12,7 @@
 
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
 namespace reco
@@ -25,16 +26,19 @@ namespace reco
 class TFile;
 class TTree;
 
-class NtupleMaker: public edm::EDAnalyzer
+class NtupleMaker : public edm::EDAnalyzer
 {
+    /*
+     * Produce ttmuj Ntuple
+     */
     public:
-        explicit NtupleMaker(const edm::ParameterSet &);
+        NtupleMaker(const edm::ParameterSet &);
         virtual ~NtupleMaker();
 
     private:
-        virtual void beginJob() ;
+        virtual void beginJob();
         virtual void analyze(const edm::Event &, const edm::EventSetup &);
-        virtual void endJob() ;
+        virtual void endJob();
 
         TFile *theFile;
         TTree *ftree;
