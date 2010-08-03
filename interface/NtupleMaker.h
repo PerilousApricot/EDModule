@@ -25,11 +25,11 @@ namespace reco
 class TFile;
 class TTree;
 
-class ABCD: public edm::EDAnalyzer
+class NtupleMaker: public edm::EDAnalyzer
 {
     public:
-        explicit ABCD(const edm::ParameterSet &);
-        virtual ~ABCD();
+        explicit NtupleMaker(const edm::ParameterSet &);
+        virtual ~NtupleMaker();
 
     private:
         virtual void beginJob() ;

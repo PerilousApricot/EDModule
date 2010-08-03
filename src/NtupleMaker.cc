@@ -30,7 +30,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "RecoJets/JetAlgorithms/interface/JetIDHelper.h"
 
-#include "Top/EDAnalyzers/interface/ABCD.h"
+#include "Top/EDAnalyzers/interface/NtupleMaker.h"
 
 using std::vector;
 using std::string;
@@ -39,20 +39,21 @@ using namespace edm;
 using namespace reco;
 using reco::helper::JetIDHelper;
 
-ABCD::ABCD(const edm::ParameterSet& iConfig):
+NtupleMaker::NtupleMaker(const edm::ParameterSet& iConfig):
   hltTag_(iConfig.getParameter<InputTag>("hltTag"))
 {
    //now do what ever initialization is needed
     jetID = new JetIDHelper(iConfig.getParameter<ParameterSet>("JetIDParams"));
 }
 
-ABCD::~ABCD()
+NtupleMaker::~NtupleMaker()
 {
     delete jetID;
 }
 
 // ------------ method called to for each event  ------------
-void ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+void NtupleMaker::analyze(const edm::Event& iEvent,
+                          const edm::EventSetup& iSetup)
 {
     Handle<TriggerResults> hlt;
     iEvent.getByLabel(hltTag_,hlt);
@@ -215,8 +216,8 @@ void ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         }
     }
 
-    if (!(n_muon==1 ||
-          (n_tight==1 && n_loose==1)))
+    if (!(n_muon == 1 ||
+          (n_tight == 1 && n_loose == 1)))
         return;
 
     for(GsfElectronCollection::const_iterator elec = electrons->begin();
@@ -257,9 +258,9 @@ void ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 }
 
 // ------------ method called once each job just before starting event loop  ------------
-void ABCD::beginJob()
+void NtupleMaker::beginJob()
 {
-    theFile = new TFile("ABCD.root", "RECREATE");
+    theFile = new TFile("ttmuj_ntuple.root", "RECREATE");
     ftree = new TTree("top", "top");
 
     ftree->Branch("muon_pt", &muon_pt_, "muon_pt/F");
@@ -280,7 +281,7 @@ void ABCD::beginJob()
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
-void ABCD::endJob()
+void NtupleMaker::endJob()
 {
     theFile->cd();
     ftree->Write();
@@ -290,4 +291,4 @@ void ABCD::endJob()
 }
 
 //define this as a plug-in
-DEFINE_FWK_MODULE(ABCD);
+DEFINE_FWK_MODULE(NtupleMaker);
