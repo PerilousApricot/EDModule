@@ -35,8 +35,18 @@ double relIso(const pat::Muon &muon)
     return (muon.trackIso() + muon.ecalIso() + muon.hcalIso()) / muon.pt();
 }
 
-NtupleMaker::NtupleMaker(const edm::ParameterSet &iConfig)
+NtupleMaker::NtupleMaker(const edm::ParameterSet &config)
 {
+    using std::string;
+
+    _ntuple = 0;
+    _tree = 0;
+
+    _metCollection = config.getParameter<string>("metCollection");
+    _muonCollection = config.getParameter<string>("muonCollection");
+    _jetCollection = config.getParameter<string>("jetCollection");
+    _pvCollection = config.getParameter<string>("pvCollection");
+    _electronCollection = config.getParameter<string>("electronCollection");
 }
 
 NtupleMaker::~NtupleMaker()
@@ -44,8 +54,8 @@ NtupleMaker::~NtupleMaker()
 }
 
 // ------------ method called to for each event  ------------
-void NtupleMaker::analyze(const edm::Event& event,
-                          const edm::EventSetup& iSetup)
+void NtupleMaker::analyze(const edm::Event &event,
+                          const edm::EventSetup &)
 {
     using std::vector;
     using std::clog;
@@ -102,11 +112,11 @@ void NtupleMaker::analyze(const edm::Event& event,
 
     // -[ MET ]-
     edm::Handle<METCollection> mets;
-    event.getByLabel(edm::InputTag("patMETs"), mets);
+    event.getByLabel(edm::InputTag(_metCollection), mets);
 
     if (!mets.isValid())
     {
-        clog << "[WAnalyzer] "
+        clog << "[NtupleMaker] "
             << "failed to extract patMETs." << std::endl;
 
         return;
@@ -174,122 +184,6 @@ void NtupleMaker::analyze(const edm::Event& event,
             }
         }
     } // end loop over muons
-
-/*
-    size_t n_loose=0;
-    size_t n_tight=0;
-    size_t n_muon=0;
-
-    for(MuonCollection::const_iterator muon = muons->begin();
-        muons->end() != muon;
-        ++muon)
-    {
-        double reliso = (muon->isolationR03().hadEt +
-                         muon->isolationR03().emEt +
-                         muon->isolationR03().sumPt) / muon->pt();
-
-
-        // find Minimum DeltaR between muon and any good jet
-        double DeltaR = 3.;
-        for(Collection::const_iterator jet = jets->begin();
-            jets->end() != jet;
-            ++jet)
-        {
-            if (30 < jet->pt()
-                && 2.4 > fabs(jet->eta())
-                && .01 < jet->emEnergyFraction()
-                && 1 < jet->jetID().n90Hits
-                && .98 > jet->jetID().fHPD)
-            {
-                double dr = deltaR(muon->eta(),  muon->phi(),
-                                   jet->eta(), jet->phi());
-                if(dr < DeltaR)
-                    DeltaR = dr;
-            }
-        }
-
-
-        // loose muon ID
-        if (muon->isGlobalMuon() &&
-            abs(muon->eta()) < 2.5 &&
-            muon->pt() > 10.)
-        {
-            if (reliso < 0.2)
-                ++n_loose;
-
-            ++n_muon;
-            if (n_tight == 0)
-            {
-                muon_d0_ = -1.* muon->innerTrack()->dxy(point);
-                muon_d0Error_ = sqrt(muon->innerTrack()->d0Error() *
-                                     muon->innerTrack()->d0Error() +
-                                     beamSpot.BeamWidthX() *
-                                     beamSpot.BeamWidthX());
-
-                muon_old_reliso_= muon->pt() / (muon->pt() +
-                                              muon->isolationR03().sumPt +
-                                              muon->isolationR03().emEt +
-                                              muon->isolationR03().hadEt);
-
-                muon_pt_ = muon->pt();
-                muon_eta_ = muon->eta();
-                muon_phi_ = muon->phi();
-                muon_chi2_ = muon->globalTrack()->normalizedChi2();
-                muon_muonhits_ = muon->globalTrack()->hitPattern().numberOfValidMuonHits();
-                muon_trackerhits_ = muon->innerTrack()->numberOfValidHits();
-                TrackerMu_ = muon->isTrackerMuon();
-                muon_jet_dr_ = DeltaR;
-                double w_et = cmet->et() + muon->pt();
-                double w_px = cmet->px() + muon->px();
-                double w_py = cmet->py() + muon->py();
-                w_mt_ = sqrt(w_et * w_et - w_px * w_px - w_py * w_py);
-            }
-        }
-
-        
-        // tight muon cuts
-        if (muon->isGlobalMuon() &&
-            muon->isTrackerMuon() &&
-            abs(muon->eta()) < 2.1 &&
-            muon->pt() > 20. &&
-            reliso < 0.05 &&
-            muon->innerTrack()->numberOfValidHits() >= 11 &&
-            muon->globalTrack()->normalizedChi2() < 10. &&
-            muon->globalTrack()->hitPattern().numberOfValidMuonHits() > 0 &&
-            DeltaR > 0.3 &&
-            abs(muon->innerTrack()->dxy(point)) < 0.02)
-        {
-            ++n_tight;
-            muon_d0_ = -1. * muon->innerTrack()->dxy(point);
-            muon_d0Error_ = sqrt(muon->innerTrack()->d0Error() *
-                                 muon->innerTrack()->d0Error() +
-                                 beamSpot.BeamWidthX() *
-                                 beamSpot.BeamWidthX());
-
-            muon_old_reliso_= muon->pt() / (muon->pt() +
-                                          muon->isolationR03().sumPt +
-                                          muon->isolationR03().emEt +
-                                          muon->isolationR03().hadEt);
-
-            muon_pt_ = muon->pt();
-            muon_eta_ = muon->eta();
-            muon_phi_ = muon->phi();
-            muon_chi2_ = muon->globalTrack()->normalizedChi2();
-            muon_muonhits_ = muon->globalTrack()->hitPattern().numberOfValidMuonHits();
-            muon_trackerhits_ = muon->innerTrack()->numberOfValidHits();
-            TrackerMu_ = muon->isTrackerMuon();
-            muon_jet_dr_ = DeltaR;
-            double w_et = cmet->et() + muon->pt();
-            double w_px = cmet->px() + muon->px();
-            double w_py = cmet->py() + muon->py();
-            w_mt_ = sqrt(w_et * w_et - w_px * w_px - w_py * w_py);
-        }
-    }
-
-    if (!(n_muon == 1 ||
-          (n_tight == 1 && n_loose == 1)))
-        return;
-        */
 
     if (1 != tightMuons.size() ||
         1 != looseMuons.size())
@@ -416,7 +310,7 @@ bool NtupleMaker::processPrimaryVertex(const edm::Event &event)
     using reco::VertexCollection;
 
     edm::Handle<VertexCollection> primaryVertex;
-    event.getByLabel(edm::InputTag("offlinePrimaryVertices"),
+    event.getByLabel(edm::InputTag(_pvCollection),
                      primaryVertex);
 
     if (!primaryVertex.isValid())

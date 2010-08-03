@@ -44,6 +44,7 @@ class NtupleMaker : public edm::EDAnalyzer
         std::string _muonCollection;
         std::string _jetCollection;
         std::string _metCollection;
+        std::string _pvCollection;
 
         struct Muon
         {
