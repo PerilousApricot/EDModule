@@ -46,60 +46,12 @@
 #include "TFile.h"
 #include "TTree.h"
 
+#include "Top/EDAnalyzers/interface/ABCD.h"
 
 using namespace std;
 using namespace edm;
 using namespace reco;
 
-//
-// class declaration
-//
-
-class ABCD : public edm::EDAnalyzer {
-   public:
-      explicit ABCD(const edm::ParameterSet&);
-      ~ABCD();
-
-
-   private:
-      virtual void beginJob() ;
-      virtual void analyze(const edm::Event&, const edm::EventSetup&);
-      virtual void endJob() ;
-
-      // ----------member data ---------------------------
-    TFile *theFile;
-    TTree *ftree;
-    float muon_pt_;
-    float muon_eta_;
-    float muon_phi_;
-    float muon_chi2_;
-    int muon_muonhits_;
-    int muon_trackerhits_;
-    float muon_jet_dr_;
-    float muon_d0_;
-    float muon_d0Error_;
-    float muon_old_reliso_;
-    int TrackerMu_;
-    float jet_pt_[20];
-    size_t njets_;
-    float met_;
-    float w_mt_;
-    edm::TriggerNames hltNames_;
-    helper::JetIDHelper *jetID;
-    InputTag hltTag_;
-};
-
-//
-// constants, enums and typedefs
-//
-
-//
-// static data member definitions
-//
-
-//
-// constructors and destructor
-//
 ABCD::ABCD(const edm::ParameterSet& iConfig):
   hltTag_(iConfig.getParameter< InputTag >("hltTag"))
 {
@@ -167,15 +119,24 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             break;
         }
     }
-    if(!hlt_mu_)return;
+    if(!hlt_mu_)
+        return;
 
-    if(pvtx->size()<1)return;
+    if(pvtx->size()<1)
+        return;
+        
+    _npvs = pvtx->size();
+
     Vertex const & pv = pvtx->at(0);
     if(!(!pv.isFake()
         &&pv.ndof()>4
         &&fabs(pv.z())<15.
         &&pv.position().Rho()<2.0))
-    return;
+        return;
+
+    _pv_coord[0] = pv.x();
+    _pv_coord[1] = pv.y();
+    _pv_coord[2] = pv.z();
 
     size_t n_loose=0;
     size_t n_tight=0;
@@ -220,7 +181,18 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 muon_chi2_ = mu->globalTrack()->normalizedChi2();
                 muon_muonhits_ = mu->globalTrack()->hitPattern().numberOfValidMuonHits();
                 muon_trackerhits_ = mu->innerTrack()->numberOfValidHits();
+                _muon_track_iso = mu->isolationR03().sumPt;
+                _muon_ecal_iso = mu->isolationR03().emEt;
+                _muon_hcal_iso = mu->isolationR03().hadEt;
+                _muon_ecal_veto = mu->isolationR03().emVetoEt;
+                _muon_hcal_veto = mu->isolationR03().hadVetoEt;
+                _muon_coord[0] = mu->vx();
+                _muon_coord[1] = mu->vy();
+                _muon_coord[2] = mu->vz();
+                // https://twiki.cern.ch/twiki/bin/view/CMS/VbtfWmunuBaselineSelection
+                _muon_mustations = mu->numberOfMatches();
                 TrackerMu_ = mu->isTrackerMuon();
+                GlobalMu_ = mu->isGlobalMuon();
                 muon_jet_dr_ = DeltaR;
                 double w_et = cmet->et()+ mu->pt();
                 double w_px = cmet->px()+ mu->px();
@@ -249,7 +221,17 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             muon_chi2_ = mu->globalTrack()->normalizedChi2();
             muon_muonhits_ = mu->globalTrack()->hitPattern().numberOfValidMuonHits();
             muon_trackerhits_ = mu->innerTrack()->numberOfValidHits();
+            _muon_track_iso = mu->isolationR03().sumPt;
+            _muon_ecal_iso = mu->isolationR03().emEt;
+            _muon_hcal_iso = mu->isolationR03().hadEt;
+            _muon_ecal_veto = mu->isolationR03().emVetoEt;
+            _muon_hcal_veto = mu->isolationR03().hadVetoEt;
+            _muon_coord[0] = mu->vx();
+            _muon_coord[1] = mu->vy();
+            _muon_coord[2] = mu->vz();
+            _muon_mustations = mu->numberOfMatches();
             TrackerMu_ = mu->isTrackerMuon();
+            GlobalMu_ = mu->isGlobalMuon();
             muon_jet_dr_ = DeltaR;
             double w_et = cmet->et()+ mu->pt();
             double w_px = cmet->px()+ mu->px();
@@ -309,7 +291,18 @@ ABCD::beginJob()
     ftree->Branch("muon_muonhits",&muon_muonhits_,"muon_muonhits/I");
     ftree->Branch("muon_trackerhits",&muon_trackerhits_,"muon_trackerhits/I");
     ftree->Branch("muon_jet_dr",&muon_jet_dr_,"muon_jet_dr/F");
+    ftree->Branch("muon_coord",&_muon_coord,"muon_coord[3]/F");
+    ftree->Branch("muon_track_iso", &_muon_track_iso, "muon_track_iso/F");
+    ftree->Branch("muon_ecal_iso", &_muon_ecal_iso, "muon_ecal_iso/F");
+    ftree->Branch("muon_hcal_iso", &_muon_hcal_iso, "muon_hcal_iso/F");
+    ftree->Branch("muon_mustations", &_muon_mustations, "muon_mustations/F");
+    ftree->Branch("muon_ecal_veto", &_muon_ecal_veto, "muon_ecal_veto/F");
+    ftree->Branch("muon_hcal_veto", &_muon_hcal_veto, "muon_hcal_veto/F");
+
     ftree->Branch("TrackerMu",&TrackerMu_,"TrackerMu/I");
+    ftree->Branch("GlobalMu",&GlobalMu_,"GlobalMu/I");
+    ftree->Branch("npvs", &_npvs, "npvs/I");
+    ftree->Branch("pv_coord",_pv_coord,"pv_coord[3]/F");
     ftree->Branch("njets",&njets_,"njets/I");
     ftree->Branch("jet_pt",jet_pt_,"jet_pt[njets]/F");
     ftree->Branch("met",&met_,"met/F");
