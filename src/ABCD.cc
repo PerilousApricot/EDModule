@@ -138,6 +138,8 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     _pv_coord[1] = pv.y();
     _pv_coord[2] = pv.z();
 
+    math::XYZPoint primaryVertex(pv.x(), pv.y(), pv.z());
+
     size_t n_loose=0;
     size_t n_tight=0;
     size_t n_muon=0;
@@ -173,6 +175,8 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             if(n_tight==0)
             {
                 muon_d0_ = -1.* mu->innerTrack()->dxy(point);
+                _muon_d0pv2d = -1. * mu->innerTrack()->dxy(primaryVertex);
+
                 muon_d0Error_ = sqrt( mu->innerTrack()->d0Error() * mu->innerTrack()->d0Error() + beamSpot.BeamWidthX()*beamSpot.BeamWidthX());
                 muon_old_reliso_=( mu->pt()/(mu->pt() + mu->isolationR03().sumPt+mu->isolationR03().emEt+mu->isolationR03().hadEt) );
                 muon_pt_ = mu->pt();
@@ -181,11 +185,18 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 muon_chi2_ = mu->globalTrack()->normalizedChi2();
                 muon_muonhits_ = mu->globalTrack()->hitPattern().numberOfValidMuonHits();
                 muon_trackerhits_ = mu->innerTrack()->numberOfValidHits();
-                _muon_track_iso = mu->isolationR03().sumPt;
-                _muon_ecal_iso = mu->isolationR03().emEt;
-                _muon_hcal_iso = mu->isolationR03().hadEt;
-                _muon_ecal_veto = mu->isolationR03().emVetoEt;
-                _muon_hcal_veto = mu->isolationR03().hadVetoEt;
+                _muon_iso03_track = mu->isolationR03().sumPt;
+                _muon_iso03_ecal = mu->isolationR03().emEt;
+                _muon_iso03_hcal = mu->isolationR03().hadEt;
+                _muon_iso03_ecal_veto = mu->isolationR03().emVetoEt;
+                _muon_iso03_hcal_veto = mu->isolationR03().hadVetoEt;
+
+                _muon_iso05_track = mu->isolationR05().sumPt;
+                _muon_iso05_ecal = mu->isolationR05().emEt;
+                _muon_iso05_hcal = mu->isolationR05().hadEt;
+                _muon_iso05_ecal_veto = mu->isolationR05().emVetoEt;
+                _muon_iso05_hcal_veto = mu->isolationR05().hadVetoEt;
+
                 _muon_coord[0] = mu->vx();
                 _muon_coord[1] = mu->vy();
                 _muon_coord[2] = mu->vz();
@@ -213,6 +224,8 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         {
             n_tight++;
             muon_d0_ = -1.* mu->innerTrack()->dxy(point);
+            _muon_d0pv2d = -1. * mu->innerTrack()->dxy(primaryVertex);
+
             muon_d0Error_ = sqrt( mu->innerTrack()->d0Error() * mu->innerTrack()->d0Error() + beamSpot.BeamWidthX()*beamSpot.BeamWidthX());
             muon_old_reliso_=( mu->pt()/(mu->pt() + mu->isolationR03().sumPt+mu->isolationR03().emEt+mu->isolationR03().hadEt) );
             muon_pt_ = mu->pt();
@@ -221,11 +234,18 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             muon_chi2_ = mu->globalTrack()->normalizedChi2();
             muon_muonhits_ = mu->globalTrack()->hitPattern().numberOfValidMuonHits();
             muon_trackerhits_ = mu->innerTrack()->numberOfValidHits();
-            _muon_track_iso = mu->isolationR03().sumPt;
-            _muon_ecal_iso = mu->isolationR03().emEt;
-            _muon_hcal_iso = mu->isolationR03().hadEt;
-            _muon_ecal_veto = mu->isolationR03().emVetoEt;
-            _muon_hcal_veto = mu->isolationR03().hadVetoEt;
+            _muon_iso03_track = mu->isolationR03().sumPt;
+            _muon_iso03_ecal = mu->isolationR03().emEt;
+            _muon_iso03_hcal = mu->isolationR03().hadEt;
+            _muon_iso03_ecal_veto = mu->isolationR03().emVetoEt;
+            _muon_iso03_hcal_veto = mu->isolationR03().hadVetoEt;
+
+            _muon_iso05_track = mu->isolationR05().sumPt;
+            _muon_iso05_ecal = mu->isolationR05().emEt;
+            _muon_iso05_hcal = mu->isolationR05().hadEt;
+            _muon_iso05_ecal_veto = mu->isolationR05().emVetoEt;
+            _muon_iso05_hcal_veto = mu->isolationR05().hadVetoEt;
+
             _muon_coord[0] = mu->vx();
             _muon_coord[1] = mu->vy();
             _muon_coord[2] = mu->vz();
@@ -263,12 +283,19 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             &&jetID->n90Hits()>1
             &&jetID->fHPD()<0.98)
         {
-            jet_pt_[njets_]=jet->pt();
-            njets_++;
+            jet_px_[njets_]=jet->px();
+            jet_py_[njets_]=jet->py();
+            jet_pz_[njets_]=jet->pz();
+            jet_e_[njets_]=jet->energy();
+
+            ++njets_;
         }
     }
 
     met_ = cmet->et();
+
+    _run = iEvent.id().run();
+    _lumi = iEvent.id().luminosityBlock();
 
     ftree->Fill();
 }
@@ -281,10 +308,14 @@ ABCD::beginJob()
     theFile = new TFile("ABCD.root", "RECREATE");
     ftree = new TTree("top","top");
 
+    ftree->Branch("run", &_run, "run/I");
+    ftree->Branch("lumi", &_lumi, "lumi/I");
+
     ftree->Branch("muon_pt",&muon_pt_,"muon_pt/F");
     ftree->Branch("muon_eta",&muon_eta_,"muon_eta/F");
     ftree->Branch("muon_phi",&muon_phi_,"muon_phi/F"); 
     ftree->Branch("muon_d0",&muon_d0_,"muon_d0/F");
+    ftree->Branch("muon_d0pv2d",&_muon_d0pv2d,"muon_d0pv2d/F");
     ftree->Branch("muon_d0Error",&muon_d0Error_,"muon_d0Error/F");
     ftree->Branch("muon_old_reliso",&muon_old_reliso_,"muon_old_reliso/F");
     ftree->Branch("muon_chi2",&muon_chi2_,"muon_chi2/F");
@@ -292,19 +323,39 @@ ABCD::beginJob()
     ftree->Branch("muon_trackerhits",&muon_trackerhits_,"muon_trackerhits/I");
     ftree->Branch("muon_jet_dr",&muon_jet_dr_,"muon_jet_dr/F");
     ftree->Branch("muon_coord",&_muon_coord,"muon_coord[3]/F");
-    ftree->Branch("muon_track_iso", &_muon_track_iso, "muon_track_iso/F");
-    ftree->Branch("muon_ecal_iso", &_muon_ecal_iso, "muon_ecal_iso/F");
-    ftree->Branch("muon_hcal_iso", &_muon_hcal_iso, "muon_hcal_iso/F");
-    ftree->Branch("muon_mustations", &_muon_mustations, "muon_mustations/F");
-    ftree->Branch("muon_ecal_veto", &_muon_ecal_veto, "muon_ecal_veto/F");
-    ftree->Branch("muon_hcal_veto", &_muon_hcal_veto, "muon_hcal_veto/F");
 
+    ftree->Branch("muon_iso03_track", &_muon_iso03_track, "muon_iso03_track/F");
+    ftree->Branch("muon_iso03_ecal", &_muon_iso03_ecal, "muon_iso03_ecal/F");
+    ftree->Branch("muon_iso03_hcal", &_muon_iso03_hcal, "muon_iso03_hcal/F");
+    ftree->Branch("muon_iso03_ecal_veto", 
+                    &_muon_iso03_ecal_veto,
+                    "muon_iso03_ecal_veto/F");
+    ftree->Branch("muon_iso03_hcal_veto",
+                    &_muon_iso03_hcal_veto,
+                    "muon_iso03_hcal_veto/F");
+
+    ftree->Branch("muon_iso05_track", &_muon_iso05_track, "muon_iso05_track/F");
+    ftree->Branch("muon_iso05_ecal", &_muon_iso05_ecal, "muon_iso05_ecal/F");
+    ftree->Branch("muon_iso05_hcal", &_muon_iso05_hcal, "muon_iso05_hcal/F");
+    ftree->Branch("muon_iso05_ecal_veto", 
+                    &_muon_iso05_ecal_veto,
+                    "muon_iso05_ecal_veto/F");
+    ftree->Branch("muon_iso05_hcal_veto",
+                    &_muon_iso05_hcal_veto,
+                    "muon_iso05_hcal_veto/F");
+
+    ftree->Branch("muon_mustations", &_muon_mustations, "muon_mustations/F");
     ftree->Branch("TrackerMu",&TrackerMu_,"TrackerMu/I");
     ftree->Branch("GlobalMu",&GlobalMu_,"GlobalMu/I");
     ftree->Branch("npvs", &_npvs, "npvs/I");
     ftree->Branch("pv_coord",_pv_coord,"pv_coord[3]/F");
     ftree->Branch("njets",&njets_,"njets/I");
-    ftree->Branch("jet_pt",jet_pt_,"jet_pt[njets]/F");
+
+    ftree->Branch("jet_px",jet_px_,"jet_px[njets]/F");
+    ftree->Branch("jet_py",jet_py_,"jet_py[njets]/F");
+    ftree->Branch("jet_pz",jet_pz_,"jet_pz[njets]/F");
+    ftree->Branch("jet_e",jet_e_,"jet_e[njets]/F");
+
     ftree->Branch("met",&met_,"met/F");
     ftree->Branch("w_mt",&w_mt_,"w_mt/F");
 }

@@ -52,6 +52,10 @@ class ABCD : public edm::EDAnalyzer {
         // ----------member data ---------------------------
         TFile *theFile;
         TTree *ftree;
+
+        int _run;
+        int _lumi;
+
         float muon_pt_;
         float muon_eta_;
         float muon_phi_;
@@ -60,18 +64,32 @@ class ABCD : public edm::EDAnalyzer {
         int   muon_trackerhits_;
         float muon_jet_dr_;
         float muon_d0_;
+        float _muon_d0pv2d;
         float muon_d0Error_;
         float muon_old_reliso_;
         float _muon_coord[3];
-        float _muon_track_iso;
-        float _muon_ecal_iso;
-        float _muon_hcal_iso;
+
+        float _muon_iso03_track;
+        float _muon_iso03_ecal;
+        float _muon_iso03_hcal;
+        float _muon_iso03_ecal_veto;
+        float _muon_iso03_hcal_veto;
+
+        float _muon_iso05_track;
+        float _muon_iso05_ecal;
+        float _muon_iso05_hcal;
+        float _muon_iso05_ecal_veto;
+        float _muon_iso05_hcal_veto;
+
         float _muon_mustations;
-        float _muon_ecal_veto;
-        float _muon_hcal_veto;
         int   TrackerMu_;
         int   GlobalMu_;
-        float jet_pt_[20];
+
+        float jet_px_[20];
+        float jet_py_[20];
+        float jet_pz_[20];
+        float jet_e_[20];
+
         size_t _npvs;
         float  _pv_coord[3];
         size_t njets_;
