@@ -5,6 +5,8 @@ ABCD = cms.EDAnalyzer(
 
     hltTag = cms.InputTag("TriggerResults::REDIGI"),
 
+    inputType = cms.string("DATA"),
+
     JetIDParams = cms.PSet(
         useRecHits = cms.bool(True),
         hbheRecHitsColl = cms.InputTag("hbhereco"),

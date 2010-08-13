@@ -21,6 +21,7 @@
 
 // system include files
 #include <memory>
+#include <string>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -45,6 +46,7 @@
 
 #include "TFile.h"
 #include "TTree.h"
+#include "TH1I.h"
 
 #include "Top/EDAnalyzers/interface/ABCD.h"
 
@@ -57,6 +59,10 @@ ABCD::ABCD(const edm::ParameterSet& iConfig):
 {
     //now do what ever initialization is needed
     jetID = new helper::JetIDHelper(iConfig.getParameter<ParameterSet>("JetIDParams"));
+    _isDataInput = "DATA" == iConfig.getParameter<std::string>("inputType");
+
+    cout << "[NtupleMaker] Using " << (_isDataInput ? "DATA" : "MC")
+        << " input" << endl;
 }
 
 
@@ -110,6 +116,8 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     const CaloMETCollection *cmetCol = cmetHandle.product();
     cmet = &(cmetCol->front());
 
+    _cutflow->Fill(0);
+
     bool hlt_mu_ = false; 
     for(size_t itrig = 0; itrig != hlt->size(); itrig++){
         string hltName = hltNames_.triggerName(itrig);
@@ -122,6 +130,8 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     if(!hlt_mu_)
         return;
 
+    _cutflow->Fill(1);
+
     if(pvtx->size()<1)
         return;
         
@@ -130,9 +140,11 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     Vertex const & pv = pvtx->at(0);
     if(!(!pv.isFake()
         &&pv.ndof()>4
-        &&fabs(pv.z())<15.
-        &&pv.position().Rho()<2.0))
+        &&fabs(pv.z())< _isDataInput ? 24 : 15.
+        &&fabs(pv.position().Rho())<2.0))
         return;
+
+    _cutflow->Fill(2);
 
     _pv_coord[0] = pv.x();
     _pv_coord[1] = pv.y();
@@ -260,8 +272,18 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         }
     }
 
+    if (1 == n_tight)
+        _cutflow->Fill(3);
+
     if(!(n_muon==1||(n_tight==1&&n_loose==1)))
         return;
+
+
+    if (1 == n_tight &&
+        1 == n_loose)
+    {
+            _cutflow->Fill(4);
+    }
 
     for(GsfElectronCollection::const_iterator elec=electrons->begin(); elec!=electrons->end(); ++elec )
     {
@@ -291,6 +313,25 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             ++njets_;
         }
     }
+
+    if (1 == n_tight &&
+        1 == n_loose)
+    {
+        _cutflow->Fill(5);
+
+        if (njets_)
+            _cutflow->Fill(6);
+
+        if (1 < njets_)
+            _cutflow->Fill(7);
+
+        if (2 < njets_)
+            _cutflow->Fill(8);
+
+        if (3 < njets_)
+            _cutflow->Fill(9);
+    }
+
 
     met_ = cmet->et();
 
@@ -358,6 +399,8 @@ ABCD::beginJob()
 
     ftree->Branch("met",&met_,"met/F");
     ftree->Branch("w_mt",&w_mt_,"w_mt/F");
+
+    _cutflow = new TH1I("cutflow", "Cutflow", 10, 0, 10);
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
@@ -365,6 +408,7 @@ void
 ABCD::endJob() {
     theFile->cd();
     ftree->Write();
+    _cutflow->Write();
 
     delete ftree;
 }

@@ -35,6 +35,8 @@
 #include "TFile.h"
 #include "TTree.h"
 
+class TH1;
+
 //
 // class declaration
 //
@@ -95,9 +97,13 @@ class ABCD : public edm::EDAnalyzer {
         size_t njets_;
         float met_;
         float w_mt_;
+
         edm::TriggerNames hltNames_;
         helper::JetIDHelper *jetID;
         edm::InputTag hltTag_;
+
+        TH1 *_cutflow;
+        bool _isDataInput;
 };
 
 #endif
