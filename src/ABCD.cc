@@ -139,9 +139,9 @@ ABCD::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
     Vertex const & pv = pvtx->at(0);
     if(!(!pv.isFake()
-        &&pv.ndof()>4
-        &&fabs(pv.z())< _isDataInput ? 24 : 15.
-        &&fabs(pv.position().Rho())<2.0))
+        &&pv.ndof() >= 4
+        &&fabs(pv.z()) <= (_isDataInput ? 24 : 15.)
+        &&fabs(pv.position().Rho()) <= 2.0))
         return;
 
     _cutflow->Fill(2);
