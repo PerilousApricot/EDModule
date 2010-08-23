@@ -10,12 +10,10 @@
 <use name=DataFormats/VertexReco>
 <use name=FWCore/Common>
 <use name=FWCore/Framework>
+<use name=FWCore/MessageLogger>
 <use name=FWCore/ParameterSet>
 <use name=FWCore/Utilities>
 <use name=RecoJets/JetAlgorithms>
+<use name=Top/Tree>
 
 <flags EDM_PLUGIN="1">
-
-<export>
-    <lib name=TopEDAnalyzers>
-</export>
