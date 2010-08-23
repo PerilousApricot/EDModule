@@ -26,6 +26,7 @@
 
 #include "Top/Tree/interface/Electron.h"
 #include "Top/Tree/interface/Jet.h"
+#include "Top/Tree/interface/JetEnergy.h"
 #include "Top/Tree/interface/Muon.h"
 
 #include "Top/EDAnalyzers/interface/TreeMaker.h"
@@ -53,6 +54,31 @@ void setP4(top::LorentzVector *topP4,
            const math::XYZTLorentzVector &cmsswP4)
 {
     setP4(topP4, &cmsswP4);
+}
+
+void setEnergy(top::JetEnergy *energy,
+                const reco::CaloJet::Specific *specific)
+{
+    energy->setEcalMax(specific->mMaxEInEmTowers);
+    energy->setHcalMax(specific->mMaxEInHadTowers);
+
+    energy->setHcalInHO(specific->mHadEnergyInHO);
+    energy->setHcalInHB(specific->mHadEnergyInHB);
+    energy->setHcalInHF(specific->mHadEnergyInHF);
+    energy->setHcalInHE(specific->mHadEnergyInHE);
+
+    energy->setEcalInEB(specific->mEmEnergyInEB);
+    energy->setEcalInEE(specific->mEmEnergyInEE);
+    energy->setEcalInHF(specific->mEmEnergyInHF);
+
+    energy->setEcalFraction(specific->mEnergyFractionEm);
+    energy->setHcalFraction(specific->mEnergyFractionHadronic);
+}
+
+void setEnergy(top::JetEnergy *energy,
+                const reco::CaloJet::Specific &specific)
+{
+    setEnergy(energy, &specific);
 }
 
 TreeMaker::TreeMaker(const edm::ParameterSet &config)
@@ -185,6 +211,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         top::Jet topJet;
 
         setP4(topJet.p4(), jet->p4());
+        setEnergy(topJet.energy(), jet->getSpecific());
 
         _topEvent->jets()->push_back(topJet);
     }
