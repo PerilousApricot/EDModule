@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
@@ -17,6 +18,7 @@
 #include "DataFormats/METReco/interface/CaloMETCollection.h"
 #include "DataFormats/MuonReco/interface/Muon.h"
 #include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/TrackReco/interface/Track.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -44,6 +46,7 @@ using edm::LogWarning;
 using edm::LogInfo;
 using edm::ParameterSet;
 
+using reco::BeamSpot;
 using reco::helper::JetIDHelper;
 
 void setP4(top::LorentzVector *topP4,
@@ -113,6 +116,7 @@ TreeMaker::TreeMaker(const edm::ParameterSet &config)
     _muonTag = config.getParameter<string>("muonTag");
     _jetTag = config.getParameter<string>("jetTag");
     _electronTag = config.getParameter<string>("electronTag");
+    _beamSpotTag = config.getParameter<string>("beamSpotTag");
 
     _jetID = new JetIDHelper(config.getParameter<ParameterSet>("jetIDParams"));
 }
@@ -160,6 +164,18 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 {
     if (!_topEvent.get())
         return;
+
+    // Extract BeamSpot
+    Handle<BeamSpot> beamSpot;
+    event.getByLabel(InputTag(_beamSpotTag), beamSpot);
+
+    if (!beamSpot.isValid())
+    {
+        LogWarning("TreeMaker")
+            << "failed to extract BeamSpot.";
+
+        return;
+    }
 
     // Extract MET
     Handle<CaloMETCollection> caloMets;
@@ -227,9 +243,37 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         topMuon.setIsGlobal(muon->isGlobalMuon());
         topMuon.setIsTracker(muon->isTrackerMuon());
 
+        topMuon.setMatches(muon->numberOfMatches());
+
         setP4(topMuon.p4(), muon->p4());
+
         setIsolation(topMuon.isolation(top::Muon::R03), muon->isolationR03());
         setIsolation(topMuon.isolation(top::Muon::R05), muon->isolationR05());
+
+        // Inner Track is only available for the Tracker Muons
+        if (muon->isTrackerMuon())
+        {
+            top::ImpactParameter *ip = topMuon.impactParameter(top::Muon::BS2D);
+
+            ip->setValue(muon->innerTrack()->dxy(beamSpot->position()));
+
+            ip->setError(sqrt(muon->innerTrack()->d0Error() *
+                              muon->innerTrack()->d0Error() +
+                              beamSpot->BeamWidthX() *
+                              beamSpot->BeamWidthX() +
+                              beamSpot->BeamWidthY() *
+                              beamSpot->BeamWidthY()));
+
+            topMuon.setInnerValidHits(muon->innerTrack()->numberOfValidHits());
+        }
+
+        // Next properties are only defined for the Global Muon
+        if (muon->isGlobalMuon())
+        {
+            topMuon.setOuterValidHits(muon->globalTrack()->hitPattern().numberOfValidMuonHits());
+            topMuon.setChi2(muon->globalTrack()->chi2());
+            topMuon.setNdof(muon->globalTrack()->ndof());
+        }
 
         _topEvent->muons()->push_back(topMuon);
     }

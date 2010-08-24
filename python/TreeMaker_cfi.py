@@ -7,6 +7,7 @@ TreeMaker = cms.EDFilter(
     muonTag = cms.string("muons"),
     jetTag = cms.string("ak5CaloJetsL2L3"),
     electronTag = cms.string("gsfElectrons"),
+    beamSpotTag = cms.string("offlineBeamSpot"),
 
     jetIDParams = cms.PSet(
         useRecHits = cms.bool(True),

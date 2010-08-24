@@ -49,6 +49,7 @@ class TreeMaker : public edm::EDAnalyzer
         std::string _muonTag;
         std::string _jetTag;
         std::string _electronTag;
+        std::string _beamSpotTag;
 
         reco::helper::JetIDHelper *_jetID;
 };
