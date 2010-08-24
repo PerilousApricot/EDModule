@@ -23,11 +23,13 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 #include "FWCore/Utilities/interface/InputTag.h"
+#include "RecoJets/JetAlgorithms/interface/JetIDHelper.h"
 
 #include "Top/Tree/interface/Electron.h"
 #include "Top/Tree/interface/Jet.h"
 #include "Top/Tree/interface/JetEnergy.h"
 #include "Top/Tree/interface/Muon.h"
+#include "Top/Tree/interface/MuonIsolation.h"
 
 #include "Top/EDAnalyzers/interface/TreeMaker.h"
 
@@ -40,6 +42,9 @@ using edm::Handle;
 using edm::InputTag;
 using edm::LogWarning;
 using edm::LogInfo;
+using edm::ParameterSet;
+
+using reco::helper::JetIDHelper;
 
 void setP4(top::LorentzVector *topP4,
            const math::XYZTLorentzVector *cmsswP4)
@@ -81,16 +86,40 @@ void setEnergy(top::JetEnergy *energy,
     setEnergy(energy, &specific);
 }
 
+void setIsolation(top::MuonIsolation *topIso,
+                    const reco::MuonIsolation *recoIso)
+{
+    topIso->setTrackPt(recoIso->sumPt);
+    topIso->setEcalEt(recoIso->emEt);
+    topIso->setHcalEt(recoIso->hadEt);
+
+    topIso->setTracks(recoIso->nTracks);
+    topIso->setJets(recoIso->nJets);
+
+    topIso->setTrackPtVeto(recoIso->trackerVetoPt);
+    topIso->setEcalEtVeto(recoIso->emVetoEt);
+    topIso->setHcalEtVeto(recoIso->hadVetoEt);
+}
+
+void setIsolation(top::MuonIsolation *topIso,
+                    const reco::MuonIsolation &recoIso)
+{
+    setIsolation(topIso, &recoIso);
+}
+
 TreeMaker::TreeMaker(const edm::ParameterSet &config)
 {
     _metTag = config.getParameter<string>("metTag");
     _muonTag = config.getParameter<string>("muonTag");
     _jetTag = config.getParameter<string>("jetTag");
     _electronTag = config.getParameter<string>("electronTag");
+
+    _jetID = new JetIDHelper(config.getParameter<ParameterSet>("jetIDParams"));
 }
 
 TreeMaker::~TreeMaker()
 {
+    delete _jetID;
 }
 
 void TreeMaker::beginJob()
@@ -199,6 +228,8 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         topMuon.setIsTracker(muon->isTrackerMuon());
 
         setP4(topMuon.p4(), muon->p4());
+        setIsolation(topMuon.isolation(top::Muon::R03), muon->isolationR03());
+        setIsolation(topMuon.isolation(top::Muon::R05), muon->isolationR05());
 
         _topEvent->muons()->push_back(topMuon);
     }
@@ -208,10 +239,15 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         jets->end() != jet;
         ++jet)
     {
+        _jetID->calculate(event, *jet);
+
         top::Jet topJet;
 
         setP4(topJet.p4(), jet->p4());
         setEnergy(topJet.energy(), jet->getSpecific());
+
+        topJet.setHits90(_jetID->n90Hits());
+        topJet.setHpd(_jetID->fHPD());
 
         _topEvent->jets()->push_back(topJet);
     }

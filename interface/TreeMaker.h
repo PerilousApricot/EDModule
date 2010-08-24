@@ -19,6 +19,14 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 
+namespace reco
+{
+    namespace helper
+    {
+        class JetIDHelper;
+    }
+}
+
 class TreeMaker : public edm::EDAnalyzer
 {
     /*
@@ -41,6 +49,8 @@ class TreeMaker : public edm::EDAnalyzer
         std::string _muonTag;
         std::string _jetTag;
         std::string _electronTag;
+
+        reco::helper::JetIDHelper *_jetID;
 };
 
 #endif
