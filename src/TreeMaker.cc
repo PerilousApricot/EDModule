@@ -239,43 +239,49 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         muons->end() != muon;
         ++muon)
     {
-        top::Muon topMuon;
-        topMuon.setIsGlobal(muon->isGlobalMuon());
-        topMuon.setIsTracker(muon->isTrackerMuon());
-
-        topMuon.setMatches(muon->numberOfMatches());
-
-        setP4(topMuon.p4(), muon->p4());
-
-        setIsolation(topMuon.isolation(top::Muon::R03), muon->isolationR03());
-        setIsolation(topMuon.isolation(top::Muon::R05), muon->isolationR05());
-
-        // Inner Track is only available for the Tracker Muons
-        if (muon->isTrackerMuon())
+        // Only Muons with basic cuts are saved:
+        if (muon->isGlobalMuon() &&
+            10 <= muon->pt() &&
+            2.5 >= fabs(muon->eta()))
         {
-            top::ImpactParameter *ip = topMuon.impactParameter(top::Muon::BS2D);
+            top::Muon topMuon;
+            topMuon.setIsGlobal(muon->isGlobalMuon());
+            topMuon.setIsTracker(muon->isTrackerMuon());
 
-            ip->setValue(muon->innerTrack()->dxy(beamSpot->position()));
+            topMuon.setMatches(muon->numberOfMatches());
 
-            ip->setError(sqrt(muon->innerTrack()->d0Error() *
-                              muon->innerTrack()->d0Error() +
-                              beamSpot->BeamWidthX() *
-                              beamSpot->BeamWidthX() +
-                              beamSpot->BeamWidthY() *
-                              beamSpot->BeamWidthY()));
+            setP4(topMuon.p4(), muon->p4());
 
-            topMuon.setInnerValidHits(muon->innerTrack()->numberOfValidHits());
+            setIsolation(topMuon.isolation(top::Muon::R03), muon->isolationR03());
+            setIsolation(topMuon.isolation(top::Muon::R05), muon->isolationR05());
+
+            // Inner Track is only available for the Tracker Muons
+            if (muon->isTrackerMuon())
+            {
+                top::ImpactParameter *ip = topMuon.impactParameter(top::Muon::BS2D);
+
+                ip->setValue(muon->innerTrack()->dxy(beamSpot->position()));
+
+                ip->setError(sqrt(muon->innerTrack()->d0Error() *
+                                  muon->innerTrack()->d0Error() +
+                                  beamSpot->BeamWidthX() *
+                                  beamSpot->BeamWidthX() +
+                                  beamSpot->BeamWidthY() *
+                                  beamSpot->BeamWidthY()));
+
+                topMuon.setInnerValidHits(muon->innerTrack()->numberOfValidHits());
+            }
+
+            // Next properties are only defined for the Global Muon
+            if (muon->isGlobalMuon())
+            {
+                topMuon.setOuterValidHits(muon->globalTrack()->hitPattern().numberOfValidMuonHits());
+                topMuon.setChi2(muon->globalTrack()->chi2());
+                topMuon.setNdof(muon->globalTrack()->ndof());
+            }
+
+            _topEvent->muons()->push_back(topMuon);
         }
-
-        // Next properties are only defined for the Global Muon
-        if (muon->isGlobalMuon())
-        {
-            topMuon.setOuterValidHits(muon->globalTrack()->hitPattern().numberOfValidMuonHits());
-            topMuon.setChi2(muon->globalTrack()->chi2());
-            topMuon.setNdof(muon->globalTrack()->ndof());
-        }
-
-        _topEvent->muons()->push_back(topMuon);
     }
 
     // Process All Jets
@@ -283,17 +289,22 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         jets->end() != jet;
         ++jet)
     {
-        _jetID->calculate(event, *jet);
+        // Select only energetic jets
+        if (30 <= jet->pt() &&
+            2.4 >= fabs(jet->eta()))
+        {
+            _jetID->calculate(event, *jet);
 
-        top::Jet topJet;
+            top::Jet topJet;
 
-        setP4(topJet.p4(), jet->p4());
-        setEnergy(topJet.energy(), jet->getSpecific());
+            setP4(topJet.p4(), jet->p4());
+            setEnergy(topJet.energy(), jet->getSpecific());
 
-        topJet.setHits90(_jetID->n90Hits());
-        topJet.setHpd(_jetID->fHPD());
+            topJet.setHits90(_jetID->n90Hits());
+            topJet.setHpd(_jetID->fHPD());
 
-        _topEvent->jets()->push_back(topJet);
+            _topEvent->jets()->push_back(topJet);
+        }
     }
 
     // Process All Electrons
@@ -301,11 +312,16 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         electrons->end() != electron;
         ++electron)
     {
-        top::Electron topElectron;
+        // Select electrons to be stored
+        if (15 <= electron->et() &&
+            2.5 >= fabs(electron->eta()))
+        {
+            top::Electron topElectron;
 
-        setP4(topElectron.p4(), electron->p4());
+            setP4(topElectron.p4(), electron->p4());
 
-        _topEvent->electrons()->push_back(topElectron);
+            _topEvent->electrons()->push_back(topElectron);
+        }
     }
 
     _topTree->Fill();
