@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
@@ -23,6 +24,7 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "RecoJets/JetAlgorithms/interface/JetIDHelper.h"
@@ -128,20 +130,11 @@ TreeMaker::~TreeMaker()
 
 void TreeMaker::beginJob()
 {
-    _topFile.reset(new TFile("top_tree.root", "RECREATE"));
+    edm::Service<TFileService> fileService;
 
-    if (!_topFile->IsOpen())
-    {
-        throw edm::Exception(ErrorCodes(8001))
-            << "failed to create output file." << endl;
-
-        _topFile.reset();
-
-        return;
-    }
+    _topTree = fileService->make<TTree>("top", "Top ttmuj tree.");
 
     _topEvent.reset(new top::Event());
-    _topTree.reset(new TTree("top", "Top TTmuj Tree."));
     _topTree->Branch("event", _topEvent.get(), 32000, 0);
 }
 
@@ -149,12 +142,6 @@ void TreeMaker::endJob()
 {
     if (!_topEvent.get())
         return;
-
-    _topFile->Write();
-
-    _topTree.reset();
-
-    _topFile.reset();
 
     // Note: Event should be destroyed after ROOT file is written and closed.
     _topEvent.reset();

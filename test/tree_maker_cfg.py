@@ -10,16 +10,22 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000))
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-        '/store/mc/Spring10/ZJets-madgraph/GEN-SIM-RECO/START3X_V26_S09-v1/0014/F0D822C6-4D47-DF11-9590-0030487E5179.root',
-        '/store/mc/Spring10/ZJets-madgraph/GEN-SIM-RECO/START3X_V26_S09-v1/0014/E4D01BAA-B647-DF11-A2C8-0030488A1188.root',
-        '/store/mc/Spring10/ZJets-madgraph/GEN-SIM-RECO/START3X_V26_S09-v1/0014/9AF1B5DE-5247-DF11-8125-003048D4363C.root',
-        '/store/mc/Spring10/ZJets-madgraph/GEN-SIM-RECO/START3X_V26_S09-v1/0014/4075725A-5547-DF11-AFC6-0030487D5D67.root',
-        '/store/mc/Spring10/ZJets-madgraph/GEN-SIM-RECO/START3X_V26_S09-v1/0014/3C600AD4-5247-DF11-A57E-0030487D5D67.root'
+        '/store/data/Run2010A/Mu/RECO/v4/000/144/114/9C954151-32B4-DF11-BB88-001D09F27003.root',
+        '/store/data/Run2010A/Mu/RECO/v4/000/144/114/5C9CA515-20B4-DF11-9D62-0030487A3DE0.root',
+        '/store/data/Run2010A/Mu/RECO/v4/000/144/114/00CA69A9-1EB4-DF11-B869-0030487CD6D2.root',
+        '/store/data/Run2010A/Mu/RECO/v4/000/144/112/FE61BD50-CAB3-DF11-B7FD-001D09F29321.root',
+        '/store/data/Run2010A/Mu/RECO/v4/000/144/112/FCEBD143-D1B3-DF11-854A-001D09F2423B.root'
     )
 )
 
 process.options = cms.untracked.PSet(
     wantSummary = cms.untracked.bool(True)
+)
+
+process.TFileService = cms.Service(
+    "TFileService",
+
+    fileName = cms.string("top_tree.root")
 )
 
 process.load("Top.EDAnalyzers.TreeMaker_cfi")
@@ -31,6 +37,7 @@ process.metMuonJESCorAK5.inputUncorMetLabel = "corMetGlobalMuons"
 process.metCorSequence = cms.Sequence(process.metMuonJESCorAK5)
 
 process.load("Top.Filters.HLTFilter_cfi")
+process.HLTFilter.hltTag = cms.string("TriggerResults::HLT")
 process.load("Top.Filters.PVFilter_cfi")
 
 process.p = cms.Path(

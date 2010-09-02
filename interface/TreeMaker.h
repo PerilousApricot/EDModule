@@ -42,8 +42,7 @@ class TreeMaker : public edm::EDAnalyzer
         virtual void endJob();
 
         std::auto_ptr<top::Event> _topEvent;
-        std::auto_ptr<TFile>      _topFile;
-        std::auto_ptr<TTree>      _topTree;
+        TTree                     *_topTree;
 
         std::string _metTag;
         std::string _muonTag;
