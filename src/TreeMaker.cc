@@ -275,12 +275,9 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             }
 
             // Next properties are only defined for the Global Muon
-            if (muon->isGlobalMuon())
-            {
-                topMuon.setOuterValidHits(muon->globalTrack()->hitPattern().numberOfValidMuonHits());
-                topMuon.setChi2(muon->globalTrack()->chi2());
-                topMuon.setNdof(muon->globalTrack()->ndof());
-            }
+            topMuon.setOuterValidHits(muon->globalTrack()->hitPattern().numberOfValidMuonHits());
+            topMuon.setChi2(muon->globalTrack()->chi2());
+            topMuon.setNdof(muon->globalTrack()->ndof());
 
             _topEvent->muons()->push_back(topMuon);
         }
