@@ -30,6 +30,7 @@
 #include "RecoJets/JetAlgorithms/interface/JetIDHelper.h"
 
 #include "Top/Tree/interface/Electron.h"
+#include "Top/Tree/interface/ElectronIsolation.h"
 #include "Top/Tree/interface/Jet.h"
 #include "Top/Tree/interface/JetEnergy.h"
 #include "Top/Tree/interface/Muon.h"
@@ -108,6 +109,20 @@ void setIsolation(top::MuonIsolation *topIso,
 
 void setIsolation(top::MuonIsolation *topIso,
                     const reco::MuonIsolation &recoIso)
+{
+    setIsolation(topIso, &recoIso);
+}
+
+void setIsolation(top::ElectronIsolation *topIso,
+                  const reco::GsfElectron::IsolationVariables *recoIso)
+{
+    topIso->setTrackPt(recoIso->tkSumPt);
+    topIso->setEcalEt(recoIso->ecalRecHitSumEt);
+    topIso->setHcalEt(recoIso->hcalDepth1TowerSumEt + recoIso->hcalDepth2TowerSumEt);
+}
+
+void setIsolation(top::ElectronIsolation *topIso,
+                  const reco::GsfElectron::IsolationVariables &recoIso)
 {
     setIsolation(topIso, &recoIso);
 }
@@ -306,6 +321,9 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             top::Electron topElectron;
 
             setP4(topElectron.p4(), electron->p4());
+
+            setIsolation(topElectron.isolation(top::Electron::R03), electron->isolationVariables03());
+            setIsolation(topElectron.isolation(top::Electron::R04), electron->isolationVariables04());
 
             _topEvent->electrons()->push_back(topElectron);
         }
