@@ -29,6 +29,7 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "RecoJets/JetAlgorithms/interface/JetIDHelper.h"
 
+#include "Top/EDAnalyzers/interface/Tools.h"
 #include "Top/Tree/interface/Electron.h"
 #include "Top/Tree/interface/ElectronIsolation.h"
 #include "Top/Tree/interface/Jet.h"
@@ -51,81 +52,6 @@ using edm::ParameterSet;
 
 using reco::BeamSpot;
 using reco::helper::JetIDHelper;
-
-void setP4(top::LorentzVector *topP4,
-           const math::XYZTLorentzVector *cmsswP4)
-{
-    topP4->SetPxPyPzE(cmsswP4->px(),
-                      cmsswP4->py(),
-                      cmsswP4->pz(),
-                      cmsswP4->energy());
-}
-
-void setP4(top::LorentzVector *topP4,
-           const math::XYZTLorentzVector &cmsswP4)
-{
-    setP4(topP4, &cmsswP4);
-}
-
-void setEnergy(top::JetEnergy *energy,
-                const reco::CaloJet::Specific *specific)
-{
-    energy->setEcalMax(specific->mMaxEInEmTowers);
-    energy->setHcalMax(specific->mMaxEInHadTowers);
-
-    energy->setHcalInHO(specific->mHadEnergyInHO);
-    energy->setHcalInHB(specific->mHadEnergyInHB);
-    energy->setHcalInHF(specific->mHadEnergyInHF);
-    energy->setHcalInHE(specific->mHadEnergyInHE);
-
-    energy->setEcalInEB(specific->mEmEnergyInEB);
-    energy->setEcalInEE(specific->mEmEnergyInEE);
-    energy->setEcalInHF(specific->mEmEnergyInHF);
-
-    energy->setEcalFraction(specific->mEnergyFractionEm);
-    energy->setHcalFraction(specific->mEnergyFractionHadronic);
-}
-
-void setEnergy(top::JetEnergy *energy,
-                const reco::CaloJet::Specific &specific)
-{
-    setEnergy(energy, &specific);
-}
-
-void setIsolation(top::MuonIsolation *topIso,
-                    const reco::MuonIsolation *recoIso)
-{
-    topIso->setTrackPt(recoIso->sumPt);
-    topIso->setEcalEt(recoIso->emEt);
-    topIso->setHcalEt(recoIso->hadEt);
-
-    topIso->setTracks(recoIso->nTracks);
-    topIso->setJets(recoIso->nJets);
-
-    topIso->setTrackPtVeto(recoIso->trackerVetoPt);
-    topIso->setEcalEtVeto(recoIso->emVetoEt);
-    topIso->setHcalEtVeto(recoIso->hadVetoEt);
-}
-
-void setIsolation(top::MuonIsolation *topIso,
-                    const reco::MuonIsolation &recoIso)
-{
-    setIsolation(topIso, &recoIso);
-}
-
-void setIsolation(top::ElectronIsolation *topIso,
-                  const reco::GsfElectron::IsolationVariables *recoIso)
-{
-    topIso->setTrackPt(recoIso->tkSumPt);
-    topIso->setEcalEt(recoIso->ecalRecHitSumEt);
-    topIso->setHcalEt(recoIso->hcalDepth1TowerSumEt + recoIso->hcalDepth2TowerSumEt);
-}
-
-void setIsolation(top::ElectronIsolation *topIso,
-                  const reco::GsfElectron::IsolationVariables &recoIso)
-{
-    setIsolation(topIso, &recoIso);
-}
 
 TreeMaker::TreeMaker(const edm::ParameterSet &config)
 {
@@ -166,6 +92,8 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 {
     if (!_topEvent.get())
         return;
+
+    using namespace top::tools;
 
     // Extract BeamSpot
     Handle<BeamSpot> beamSpot;
