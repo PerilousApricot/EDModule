@@ -10,6 +10,7 @@
 
 #include "DataFormats/MuonReco/interface/Muon.h"
 
+#include "Top/Tree/interface/Jet.h"
 #include "Top/Tree/interface/JetEnergy.h"
 #include "Top/Tree/interface/ElectronIsolation.h"
 #include "Top/Tree/interface/MuonIsolation.h"
@@ -25,44 +26,58 @@ void top::tools::setP4(TLorentzVector *topP4,
                       cmsswP4->energy());
 }
 
-void top::tools::setEnergy(top::JetEnergy *energy,
-                           const reco::CaloJet::Specific *specific)
+void top::tools::setEnergy(top::Jet &jet,
+                           const reco::CaloJet::Specific &specific)
 {
-    energy->setEcalMax(specific->mMaxEInEmTowers);
-    energy->setHcalMax(specific->mMaxEInHadTowers);
+    top::JetEnergy energy;
 
-    energy->setHcalInHO(specific->mHadEnergyInHO);
-    energy->setHcalInHB(specific->mHadEnergyInHB);
-    energy->setHcalInHF(specific->mHadEnergyInHF);
-    energy->setHcalInHE(specific->mHadEnergyInHE);
+    energy.setEcalMax(specific.mMaxEInEmTowers);
+    energy.setHcalMax(specific.mMaxEInHadTowers);
 
-    energy->setEcalInEB(specific->mEmEnergyInEB);
-    energy->setEcalInEE(specific->mEmEnergyInEE);
-    energy->setEcalInHF(specific->mEmEnergyInHF);
+    energy.setHcalInHO(specific.mHadEnergyInHO);
+    energy.setHcalInHB(specific.mHadEnergyInHB);
+    energy.setHcalInHF(specific.mHadEnergyInHF);
+    energy.setHcalInHE(specific.mHadEnergyInHE);
 
-    energy->setEcalFraction(specific->mEnergyFractionEm);
-    energy->setHcalFraction(specific->mEnergyFractionHadronic);
+    energy.setEcalInEB(specific.mEmEnergyInEB);
+    energy.setEcalInEE(specific.mEmEnergyInEE);
+    energy.setEcalInHF(specific.mEmEnergyInHF);
+
+    energy.setEcalFraction(specific.mEnergyFractionEm);
+    energy.setHcalFraction(specific.mEnergyFractionHadronic);
+
+    jet.setEnergy(energy);
 }
 
-void top::tools::setIsolation(top::MuonIsolation *topIso,
-                              const reco::MuonIsolation *recoIso)
+void top::tools::setIsolation(top::Muon &muon,
+                              const top::Muon::ISO &iso,
+                              const reco::MuonIsolation &recoIso)
 {
-    topIso->setTrackPt(recoIso->sumPt);
-    topIso->setEcalEt(recoIso->emEt);
-    topIso->setHcalEt(recoIso->hadEt);
+    top::MuonIsolation topIso;
 
-    topIso->setTracks(recoIso->nTracks);
-    topIso->setJets(recoIso->nJets);
+    topIso.setTrackPt(recoIso.sumPt);
+    topIso.setEcalEt(recoIso.emEt);
+    topIso.setHcalEt(recoIso.hadEt);
 
-    topIso->setTrackPtVeto(recoIso->trackerVetoPt);
-    topIso->setEcalEtVeto(recoIso->emVetoEt);
-    topIso->setHcalEtVeto(recoIso->hadVetoEt);
+    topIso.setTracks(recoIso.nTracks);
+    topIso.setJets(recoIso.nJets);
+
+    topIso.setTrackPtVeto(recoIso.trackerVetoPt);
+    topIso.setEcalEtVeto(recoIso.emVetoEt);
+    topIso.setHcalEtVeto(recoIso.hadVetoEt);
+
+    muon.setIsolation(iso, topIso);
 }
 
-void top::tools::setIsolation(top::ElectronIsolation *topIso,
-                              const reco::GsfElectron::IsolationVariables *recoIso)
+void top::tools::setIsolation(top::Electron &electron,
+                              const top::Electron::ISO &iso,
+                              const reco::GsfElectron::IsolationVariables &recoIso)
 {
-    topIso->setTrackPt(recoIso->tkSumPt);
-    topIso->setEcalEt(recoIso->ecalRecHitSumEt);
-    topIso->setHcalEt(recoIso->hcalDepth1TowerSumEt + recoIso->hcalDepth2TowerSumEt);
+    top::ElectronIsolation topIso;
+
+    topIso.setTrackPt(recoIso.tkSumPt);
+    topIso.setEcalEt(recoIso.ecalRecHitSumEt);
+    topIso.setHcalEt(recoIso.hcalDepth1TowerSumEt + recoIso.hcalDepth2TowerSumEt);
+
+    electron.setIsolation(iso, topIso);
 }

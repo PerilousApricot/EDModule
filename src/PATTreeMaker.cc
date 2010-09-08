@@ -32,6 +32,7 @@
 #include "Top/Tree/interface/Electron.h"
 #include "Top/Tree/interface/ElectronIsolation.h"
 #include "Top/Tree/interface/Event.h"
+#include "Top/Tree/interface/EventID.h"
 #include "Top/Tree/interface/Jet.h"
 #include "Top/Tree/interface/JetEnergy.h"
 #include "Top/Tree/interface/Muon.h"
@@ -95,6 +96,8 @@ void PATTreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     using pat::METCollection;
 
     using namespace top::tools;
+
+    using top::EventID;
 
     if (!_topEvent)
         return;
@@ -161,13 +164,19 @@ void PATTreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     _topEvent->reset();
 
-    _topEvent->id()->setRun(event.id().run());
-    _topEvent->id()->setLumiBlock(event.id().luminosityBlock());
-    _topEvent->id()->setEvent(event.id().event());
+    {
+        EventID id;
+        id.setRun(event.id().run());
+        id.setLumiBlock(event.id().luminosityBlock());
+        id.setEvent(event.id().event());
 
+        _topEvent->setID(id);
+    }
+
+/*
     // Use only first MET
     METCollection::const_iterator met = mets->begin();
-    setP4(_topEvent->met()->p4(), met->p4());
+    setP4(_topEvent->met().p4(), met->p4());
 
     // Process all Muons
     for(MuonCollection::const_iterator muon = muons->begin();
@@ -217,7 +226,7 @@ void PATTreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             topMuon.setChi2(muon->globalTrack()->chi2());
             topMuon.setNdof(muon->globalTrack()->ndof());
 
-            _topEvent->muons()->push_back(topMuon);
+            _topEvent->muons().push_back(topMuon);
         }
     }
 
@@ -238,7 +247,7 @@ void PATTreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             topJet.setHits90(jet->jetID().n90Hits);
             topJet.setHpd(jet->jetID().fHPD);
 
-            _topEvent->jets()->push_back(topJet);
+            _topEvent->jets().push_back(topJet);
         }
     }
 
@@ -258,9 +267,10 @@ void PATTreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             setIsolation(topElectron.isolation(top::Electron::R03), electron->isolationVariables03());
             setIsolation(topElectron.isolation(top::Electron::R04), electron->isolationVariables04());
 
-            _topEvent->electrons()->push_back(topElectron);
+            _topEvent->electrons().push_back(topElectron);
         }
     }
+    */
 
     _topTree->Fill();
 }

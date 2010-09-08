@@ -32,6 +32,7 @@
 #include "Top/EDAnalyzers/interface/Tools.h"
 #include "Top/Tree/interface/Electron.h"
 #include "Top/Tree/interface/ElectronIsolation.h"
+#include "Top/Tree/interface/EventID.h"
 #include "Top/Tree/interface/Jet.h"
 #include "Top/Tree/interface/JetEnergy.h"
 #include "Top/Tree/interface/Muon.h"
@@ -157,12 +158,17 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     _topEvent->reset();
 
-    _topEvent->id()->setRun(event.id().run());
-    _topEvent->id()->setLumiBlock(event.id().luminosityBlock());
-    _topEvent->id()->setEvent(event.id().event());
+    {
+        top::EventID id;
+        id.setRun(event.id().run());
+        id.setLumiBlock(event.id().luminosityBlock());
+        id.setEvent(event.id().event());
+
+        _topEvent->setID(id);
+    }
 
     CaloMETCollection::const_iterator met = caloMets->begin();
-    setP4(_topEvent->met()->p4(), met->p4());
+    setP4(_topEvent->met().p4(), met->p4());
 
     // Process all Muons
     for(MuonCollection::const_iterator muon = muons->begin();
@@ -178,26 +184,33 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             topMuon.setIsGlobal(muon->isGlobalMuon());
             topMuon.setIsTracker(muon->isTrackerMuon());
 
+            topMuon.setEta(muon->eta());
+            topMuon.setPhi(muon->phi());
+
             topMuon.setMatches(muon->numberOfMatches());
 
             setP4(topMuon.p4(), muon->p4());
 
-            setIsolation(topMuon.isolation(top::Muon::R03), muon->isolationR03());
-            setIsolation(topMuon.isolation(top::Muon::R05), muon->isolationR05());
+            setIsolation(topMuon, top::Muon::R03, muon->isolationR03());
+            setIsolation(topMuon, top::Muon::R05, muon->isolationR05());
 
             // Inner Track is only available for the Tracker Muons
             if (muon->isTrackerMuon())
             {
-                top::ImpactParameter *ip = topMuon.impactParameter(top::Muon::BS2D);
+                top::ImpactParameter ip;
 
-                ip->setValue(muon->innerTrack()->dxy(beamSpot->position()));
+                ip.setValue(muon->innerTrack()->dxy(beamSpot->position()));
 
-                ip->setError(sqrt(muon->innerTrack()->d0Error() *
-                                  muon->innerTrack()->d0Error() +
-                                  beamSpot->BeamWidthX() *
-                                  beamSpot->BeamWidthX() +
-                                  beamSpot->BeamWidthY() *
-                                  beamSpot->BeamWidthY()));
+                ip.setError(sqrt(muon->innerTrack()->d0Error() *
+                                 muon->innerTrack()->d0Error() +
+                                 0.5 *
+                                 beamSpot->BeamWidthX() *
+                                 beamSpot->BeamWidthX() +
+                                 0.5 *
+                                 beamSpot->BeamWidthY() *
+                                 beamSpot->BeamWidthY()));
+
+                topMuon.setImpactParameter(top::Muon::BS2D, ip);
 
                 topMuon.setInnerValidHits(muon->innerTrack()->numberOfValidHits());
             }
@@ -207,9 +220,9 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             topMuon.setChi2(muon->globalTrack()->chi2());
             topMuon.setNdof(muon->globalTrack()->ndof());
 
-            _topEvent->muons()->push_back(topMuon);
+            _topEvent->muons().push_back(topMuon);
         }
-    }
+    } // End loop over muons
 
     // Process All Jets
     for(CaloJetCollection::const_iterator jet = jets->begin();
@@ -225,12 +238,12 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             top::Jet topJet;
 
             setP4(topJet.p4(), jet->p4());
-            setEnergy(topJet.energy(), jet->getSpecific());
+            setEnergy(topJet, jet->getSpecific());
 
             topJet.setHits90(_jetID->n90Hits());
             topJet.setHpd(_jetID->fHPD());
 
-            _topEvent->jets()->push_back(topJet);
+            _topEvent->jets().push_back(topJet);
         }
     }
 
@@ -247,10 +260,10 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
             setP4(topElectron.p4(), electron->p4());
 
-            setIsolation(topElectron.isolation(top::Electron::R03), electron->isolationVariables03());
-            setIsolation(topElectron.isolation(top::Electron::R04), electron->isolationVariables04());
+            setIsolation(topElectron, top::Electron::R03, electron->isolationVariables03());
+            setIsolation(topElectron, top::Electron::R04, electron->isolationVariables04());
 
-            _topEvent->electrons()->push_back(topElectron);
+            _topEvent->electrons().push_back(topElectron);
         }
     }
 

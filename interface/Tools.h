@@ -13,6 +13,9 @@
 #include "DataFormats/JetReco/interface/CaloJet.h"
 #include "DataFormats/Math/interface/LorentzVector.h"
 
+#include "Top/Tree/interface/Electron.h"
+#include "Top/Tree/interface/Muon.h"
+
 class TLorentzVector;
 
 namespace reco
@@ -22,6 +25,7 @@ namespace reco
 
 namespace top
 {
+    class Jet;
     class JetEnergy;
     class ElectronIsolation;
     class MuonIsolation;
@@ -37,39 +41,15 @@ namespace top
             setP4(p4_1, &p4_2);
         }
 
+        void setEnergy(top::Jet &, const reco::CaloJet::Specific &);
 
+        void setIsolation(top::Muon &,
+                          const top::Muon::ISO &,
+                          const reco::MuonIsolation &);
 
-        void setEnergy(top::JetEnergy *,
-                        const reco::CaloJet::Specific *);
-
-        inline void setEnergy(top::JetEnergy *eng_1,
-                        const reco::CaloJet::Specific &eng_2)
-        {
-            setEnergy(eng_1, &eng_2);
-        }
-
-
-
-        void setIsolation(top::MuonIsolation *,
-                          const reco::MuonIsolation *);
-
-
-        inline void setIsolation(top::MuonIsolation *topIso,
-                                 const reco::MuonIsolation &recoIso)
-        {
-            setIsolation(topIso, &recoIso);
-        }
-
-
-
-        void setIsolation(top::ElectronIsolation *,
-                          const reco::GsfElectron::IsolationVariables *);
-
-        inline void setIsolation(top::ElectronIsolation *topIso,
-                                 const reco::GsfElectron::IsolationVariables &recoIso)
-        {
-            setIsolation(topIso, &recoIso);
-        }
+        void setIsolation(top::Electron &,
+                          const top::Electron::ISO &,
+                          const reco::GsfElectron::IsolationVariables &);
     }
 }
 
