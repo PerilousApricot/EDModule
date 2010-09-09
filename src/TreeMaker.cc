@@ -240,6 +240,9 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             setP4(topJet.p4(), jet->p4());
             setEnergy(topJet, jet->getSpecific());
 
+            topJet.setEta(jet->eta());
+            topJet.setPhi(jet->phi());
+
             topJet.setHits90(_jetID->n90Hits());
             topJet.setHpd(_jetID->fHPD());
 
@@ -259,6 +262,9 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             top::Electron topElectron;
 
             setP4(topElectron.p4(), electron->p4());
+
+            topElectron.setEta(electron->eta());
+            topElectron.setPhi(electron->phi());
 
             setIsolation(topElectron, top::Electron::R03, electron->isolationVariables03());
             setIsolation(topElectron, top::Electron::R04, electron->isolationVariables04());
