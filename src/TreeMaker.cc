@@ -56,11 +56,12 @@ using reco::helper::JetIDHelper;
 
 TreeMaker::TreeMaker(const edm::ParameterSet &config)
 {
+    _beamSpotTag = config.getParameter<string>("beamSpotTag");
+    _electronTag = config.getParameter<string>("electronTag");
+    _genParticleTag = config.getParameter<string>("genParticleTag");
+    _jetTag = config.getParameter<string>("jetTag");
     _metTag = config.getParameter<string>("metTag");
     _muonTag = config.getParameter<string>("muonTag");
-    _jetTag = config.getParameter<string>("jetTag");
-    _electronTag = config.getParameter<string>("electronTag");
-    _beamSpotTag = config.getParameter<string>("beamSpotTag");
 
     _jetID = new JetIDHelper(config.getParameter<ParameterSet>("jetIDParams"));
 }
@@ -152,6 +153,18 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     {
         LogWarning("TreeMaker")
             << "failed to extract Electrons.";
+
+        return;
+    }
+
+    // Extract Monte-Carlo GenParticles
+    Handle<GenParticleCollection> genParticles;
+    event.getByLabel(InputTag(_genParticleTag), genParticles);
+
+    if (!genParticles.isValid())
+    {
+        LogWarning("TreeMaker")
+            << "Failed to extract genParticles.";
 
         return;
     }

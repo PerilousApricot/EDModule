@@ -44,11 +44,12 @@ class TreeMaker : public edm::EDAnalyzer
         std::auto_ptr<top::Event> _topEvent;
         TTree                     *_topTree;
 
+        std::string _beamSpotTag;
+        std::string _electronTag;
+        std::string _genParticleTag;
+        std::string _jetTag;
         std::string _metTag;
         std::string _muonTag;
-        std::string _jetTag;
-        std::string _electronTag;
-        std::string _beamSpotTag;
 
         reco::helper::JetIDHelper *_jetID;
 };
