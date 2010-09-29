@@ -33,8 +33,8 @@ process.options = cms.untracked.PSet(
     wantSummary = cms.untracked.bool(True)
 )
 
-process.load("Top.Filters.HLTFilter_cfi")
-process.load("Top.Filters.PVFilter_cfi")
+process.load("EDModule.Filters.HLTFilter_cfi")
+process.load("EDModule.Filters.PVFilter_cfi")
 
 process.p = cms.Path(process.HLTFilter * process.PVFilter)
 

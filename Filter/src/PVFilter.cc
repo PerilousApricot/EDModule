@@ -15,7 +15,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
-#include "Top/Filters/interface/PVFilter.h"
+#include "EDModule/Filter/interface/PVFilter.h"
 
 using top::PVFilter;
 

@@ -9,5 +9,5 @@
 <flags EDM_PLUGIN="1">
 
 <export>
-    <lib name=TopFilters>
+    <lib name=EDModuleFilters>
 </export>
