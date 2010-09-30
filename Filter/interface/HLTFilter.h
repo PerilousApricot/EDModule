@@ -31,8 +31,8 @@ namespace top
         private:
             virtual bool filter(edm::Event &, const edm::EventSetup &);
 
-            std::string _hltTag;
-            std::string _hltName;
+            std::string _tag;
+            std::string _hlt;
     };
 }
 

@@ -25,8 +25,8 @@ HLTFilter::HLTFilter(const edm::ParameterSet &parameters)
 {
     using std::string;
 
-    _hltTag  = parameters.getParameter<string>("hltTag");
-    _hltName = parameters.getParameter<string>("hltName");
+    _tag  = parameters.getParameter<string>("tag");
+    _hlt = parameters.getParameter<string>("hlt");
 }
 
 HLTFilter::~HLTFilter()
@@ -44,7 +44,7 @@ bool HLTFilter::filter(edm::Event &event, const edm::EventSetup &)
 
     // Extract Trigger Restuls
     Handle<TriggerResults> triggerResults;
-    event.getByLabel(edm::InputTag(_hltTag), triggerResults);
+    event.getByLabel(edm::InputTag(_tag), triggerResults);
 
     if (!triggerResults.isValid())
         return false;
@@ -57,7 +57,7 @@ bool HLTFilter::filter(edm::Event &event, const edm::EventSetup &)
     // Find specified trigger in the list
     Triggers::const_iterator trigger = find(triggerNames.begin(),
                                             triggerNames.end(),
-                                            _hltName);
+                                            _hlt);
 
     // Return result of (not)found trigger
     return triggerNames.end() != trigger ?
