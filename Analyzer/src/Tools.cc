@@ -6,16 +6,16 @@
  * Copyright 2010, All rights reserved
  */
 
-#include "TLorentzVector.h"
+#include <TLorentzVector.h>
 
 #include "DataFormats/MuonReco/interface/Muon.h"
 
-#include "Top/Tree/interface/Jet.h"
-#include "Top/Tree/interface/JetEnergy.h"
-#include "Top/Tree/interface/ElectronIsolation.h"
-#include "Top/Tree/interface/MuonIsolation.h"
+#include "Tree/Top/interface/TopJet.h"
+#include "Tree/Top/interface/TopJetEnergy.h"
+#include "Tree/Top/interface/TopElectronIsolation.h"
+#include "Tree/Top/interface/TopMuonIsolation.h"
 
-#include "Top/EDAnalyzers/interface/Tools.h"
+#include "EDModule/Analyzer/interface/Tools.h"
 
 void top::tools::setP4(TLorentzVector *topP4,
                        const math::XYZTLorentzVector *cmsswP4)

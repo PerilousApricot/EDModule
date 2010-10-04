@@ -17,6 +17,6 @@
 <use name=FWCore/ServiceRegistry>
 <use name=FWCore/Utilities>
 <use name=RecoJets/JetAlgorithms>
-<use name=Top/Tree>
+<use name=Tree/Top>
 
 <flags EDM_PLUGIN="1">

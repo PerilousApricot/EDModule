@@ -27,18 +27,18 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-#include "RecoJets/JetAlgorithms/interface/JetIDHelper.h"
+#include "RecoJets/JetProducers/interface/JetIDHelper.h"
 
-#include "Top/EDAnalyzers/interface/Tools.h"
-#include "Top/Tree/interface/Electron.h"
-#include "Top/Tree/interface/ElectronIsolation.h"
-#include "Top/Tree/interface/EventID.h"
-#include "Top/Tree/interface/Jet.h"
-#include "Top/Tree/interface/JetEnergy.h"
-#include "Top/Tree/interface/Muon.h"
-#include "Top/Tree/interface/MuonIsolation.h"
+#include "EDModule/Analyzer/interface/Tools.h"
+#include "Tree/Top/interface/TopElectron.h"
+#include "Tree/Top/interface/TopElectronIsolation.h"
+#include "Tree/Top/interface/TopEventID.h"
+#include "Tree/Top/interface/TopJet.h"
+#include "Tree/Top/interface/TopJetEnergy.h"
+#include "Tree/Top/interface/TopMuon.h"
+#include "Tree/Top/interface/TopMuonIsolation.h"
 
-#include "Top/EDAnalyzers/interface/TreeMaker.h"
+#include "EDModule/Analyzer/interface/TreeMaker.h"
 
 using std::cout;
 using std::endl;
@@ -158,6 +158,8 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     }
 
     // Extract Monte-Carlo GenParticles
+    //
+    /*
     Handle<GenParticleCollection> genParticles;
     event.getByLabel(InputTag(_genParticleTag), genParticles);
 
@@ -168,6 +170,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
         return;
     }
+    */
 
     _topEvent->reset();
 

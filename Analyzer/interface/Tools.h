@@ -13,8 +13,8 @@
 #include "DataFormats/JetReco/interface/CaloJet.h"
 #include "DataFormats/Math/interface/LorentzVector.h"
 
-#include "Top/Tree/interface/Electron.h"
-#include "Top/Tree/interface/Muon.h"
+#include "Tree/Top/interface/TopElectron.h"
+#include "Tree/Top/interface/TopMuon.h"
 
 class TLorentzVector;
 
