@@ -8,17 +8,15 @@
 
 #include <iostream>
 
+#include <TTree.h>
+
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/Common/interface/Handle.h"
-#include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
-#include "DataFormats/EgammaCandidates/interface/GsfElectronFwd.h"
-#include "DataFormats/JetReco/interface/CaloJetCollection.h"
-#include "DataFormats/Math/interface/LorentzVector.h"
-#include "DataFormats/METReco/interface/CaloMET.h"
-#include "DataFormats/METReco/interface/CaloMETCollection.h"
-#include "DataFormats/MuonReco/interface/Muon.h"
-#include "DataFormats/MuonReco/interface/MuonFwd.h"
+#include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/PatCandidates/interface/MET.h"
+#include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -27,7 +25,6 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 #include "FWCore/Utilities/interface/InputTag.h"
-#include "RecoJets/JetProducers/interface/JetIDHelper.h"
 
 #include "EDModule/Analyzer/interface/Tools.h"
 #include "Tree/Top/interface/TopElectron.h"
@@ -44,6 +41,8 @@ using std::cout;
 using std::endl;
 using std::string;
 
+using cms::Exception;
+
 using edm::errors::ErrorCodes;
 using edm::Handle;
 using edm::InputTag;
@@ -52,116 +51,103 @@ using edm::LogInfo;
 using edm::ParameterSet;
 
 using reco::BeamSpot;
-using reco::helper::JetIDHelper;
 
 TreeMaker::TreeMaker(const edm::ParameterSet &config)
 {
-    _beamSpotTag = config.getParameter<string>("beamSpotTag");
-    _electronTag = config.getParameter<string>("electronTag");
-    _genParticleTag = config.getParameter<string>("genParticleTag");
-    _jetTag = config.getParameter<string>("jetTag");
-    _metTag = config.getParameter<string>("metTag");
-    _muonTag = config.getParameter<string>("muonTag");
-
-    _jetID = new JetIDHelper(config.getParameter<ParameterSet>("jetIDParams"));
+    _beamSpots = config.getParameter<string>("beamSpots");
+    _electrons = config.getParameter<string>("electrons");
+    _genParticles = config.getParameter<string>("genParticles");
+    _jets = config.getParameter<string>("jets");
+    _mets = config.getParameter<string>("mets");
+    _muons = config.getParameter<string>("muons");
 }
 
 TreeMaker::~TreeMaker()
 {
-    delete _jetID;
 }
 
 void TreeMaker::beginJob()
 {
     edm::Service<TFileService> fileService;
 
-    _topTree = fileService->make<TTree>("top", "Top ttmuj tree.");
+    _tree = fileService->make<TTree>("top", "Top ttmuj tree.");
 
-    _topEvent.reset(new top::Event());
-    _topTree->Branch("event", _topEvent.get(), 32000, 0);
+    _event.reset(new top::Event());
+    _tree->Branch("event", _event.get(), 32000, 0);
 }
 
 void TreeMaker::endJob()
 {
-    if (!_topEvent.get())
+    if (!_event.get())
         return;
 
     // Note: Event should be destroyed after ROOT file is written and closed.
-    _topEvent.reset();
+    //
+    _event.reset();
 }
 
 void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 {
-    if (!_topEvent.get())
+    if (!_event.get())
         return;
 
     using namespace top::tools;
 
+    using pat::ElectronCollection;
+    using pat::JetCollection;
+    using pat::METCollection;
+    using pat::MuonCollection;
+
     // Extract BeamSpot
+    //
     Handle<BeamSpot> beamSpot;
-    event.getByLabel(InputTag(_beamSpotTag), beamSpot);
+    event.getByLabel(InputTag(_beamSpots), beamSpot);
 
     if (!beamSpot.isValid())
-    {
-        LogWarning("TreeMaker")
-            << "failed to extract BeamSpot.";
-
-        return;
-    }
+        throw Exception("NotFound")
+            << "failed to extract BeamSpot." << endl;
 
     // Extract MET
-    Handle<CaloMETCollection> caloMets;
-    event.getByLabel(InputTag(_metTag), caloMets);
+    //
+    Handle<METCollection> mets;
+    event.getByLabel(InputTag(_mets), mets);
 
-    if (!caloMets.isValid())
-    {
-        LogWarning("TreeMaker")
-            << "failed to extract Calo METs.";
-
-        return;
-    }
+    if (!mets.isValid())
+        throw Exception("NotFound")
+            << "failed to extract METs." << endl;
 
     // Extract Muons
+    //
     Handle<MuonCollection> muons;
-    event.getByLabel(InputTag(_muonTag), muons);
+    event.getByLabel(InputTag(_muons), muons);
 
     if (!muons.isValid())
-    {
-        LogWarning("TreeMaker")
-            << "failed to extract Muons.";
-
-        return;
-    }
+        throw Exception("NotFound")
+            << "failed to extract muons." << endl;
 
     // Extract Jets
-    Handle<CaloJetCollection> jets;
-    event.getByLabel(InputTag(_jetTag), jets);
+    //
+    Handle<JetCollection> jets;
+    event.getByLabel(InputTag(_jets), jets);
 
     if (!jets.isValid())
-    {
-        LogWarning("TreeMaker")
-            << "failed to extract Jets.";
-
-        return;
-    }
+        throw Exception("NotFound")
+            << "failed to extract jets." << endl;
 
     // Extract Electrons
-    Handle<GsfElectronCollection> electrons;
-    event.getByLabel(InputTag(_electronTag), electrons);
+    //
+    Handle<ElectronCollection> electrons;
+    event.getByLabel(InputTag(_electrons), electrons);
 
     if (!electrons.isValid())
-    {
-        LogWarning("TreeMaker")
-            << "failed to extract Electrons.";
-
-        return;
-    }
+        throw Exception("NotFound")
+            << "failed to extract electrons." << endl;
 
     // Extract Monte-Carlo GenParticles
     //
     /*
     Handle<GenParticleCollection> genParticles;
-    event.getByLabel(InputTag(_genParticleTag), genParticles);
+    event.getByLabel(InputTag(_genParticles), genParticles);
 
     if (!genParticles.isValid())
     {
@@ -172,7 +158,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     }
     */
 
-    _topEvent->reset();
+    _event->reset();
 
     {
         top::EventID id;
@@ -180,13 +166,13 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         id.setLumiBlock(event.id().luminosityBlock());
         id.setEvent(event.id().event());
 
-        _topEvent->setID(id);
+        _event->setID(id);
     }
 
-    CaloMETCollection::const_iterator met = caloMets->begin();
-    setP4(_topEvent->met().p4(), met->p4());
+    setP4(_event->met().p4(), mets->begin()->p4());
 
     // Process all Muons
+    //
     for(MuonCollection::const_iterator muon = muons->begin();
         muons->end() != muon;
         ++muon)
@@ -236,12 +222,13 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             topMuon.setChi2(muon->globalTrack()->chi2());
             topMuon.setNdof(muon->globalTrack()->ndof());
 
-            _topEvent->muons().push_back(topMuon);
+            _event->muons().push_back(topMuon);
         }
     } // End loop over muons
 
     // Process All Jets
-    for(CaloJetCollection::const_iterator jet = jets->begin();
+    //
+    for(JetCollection::const_iterator jet = jets->begin();
         jets->end() != jet;
         ++jet)
     {
@@ -249,25 +236,23 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         if (30 <= jet->pt() &&
             2.4 >= fabs(jet->eta()))
         {
-            _jetID->calculate(event, *jet);
-
             top::Jet topJet;
 
             setP4(topJet.p4(), jet->p4());
-            setEnergy(topJet, jet->getSpecific());
+            setEnergy(topJet, jet->caloSpecific());
 
             topJet.setEta(jet->eta());
             topJet.setPhi(jet->phi());
 
-            topJet.setHits90(_jetID->n90Hits());
-            topJet.setHpd(_jetID->fHPD());
+            topJet.setHits90(jet->jetID().n90Hits);
+            topJet.setHpd(jet->jetID().fHPD);
 
-            _topEvent->jets().push_back(topJet);
+            _event->jets().push_back(topJet);
         }
     }
 
     // Process All Electrons
-    for(GsfElectronCollection::const_iterator electron = electrons->begin();
+    for(ElectronCollection::const_iterator electron = electrons->begin();
         electrons->end() != electron;
         ++electron)
     {
@@ -282,14 +267,19 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
             topElectron.setEta(electron->eta());
             topElectron.setPhi(electron->phi());
 
-            setIsolation(topElectron, top::Electron::R03, electron->isolationVariables03());
-            setIsolation(topElectron, top::Electron::R04, electron->isolationVariables04());
+            setIsolation(topElectron,
+                         top::Electron::R03,
+                         electron->isolationVariables03());
 
-            _topEvent->electrons().push_back(topElectron);
+            setIsolation(topElectron,
+                         top::Electron::R04,
+                         electron->isolationVariables04());
+
+            _event->electrons().push_back(topElectron);
         }
     }
 
-    _topTree->Fill();
+    _tree->Fill();
 }
 
 DEFINE_FWK_MODULE(TreeMaker);

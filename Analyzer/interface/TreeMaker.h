@@ -6,26 +6,15 @@
  * Copyright 2010, All rights reserved
  */
 
-#ifndef TOP_TREE_TREEMAKER
-#define TOP_TREE_TREEMAKER
+#ifndef TOP_TREEMAKER
+#define TOP_TREEMAKER
 
 #include <string>
-
-#include <TFile.h>
-#include <TTree.h>
 
 #include "Tree/Top/interface/TopEvent.h"
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
-
-namespace reco
-{
-    namespace helper
-    {
-        class JetIDHelper;
-    }
-}
 
 class TreeMaker : public edm::EDAnalyzer
 {
@@ -41,17 +30,15 @@ class TreeMaker : public edm::EDAnalyzer
         virtual void analyze(const edm::Event &, const edm::EventSetup &);
         virtual void endJob();
 
-        std::auto_ptr<top::Event> _topEvent;
-        TTree                     *_topTree;
+        std::auto_ptr<top::Event>  _event;
+        TTree                     *_tree;
 
-        std::string _beamSpotTag;
-        std::string _electronTag;
-        std::string _genParticleTag;
-        std::string _jetTag;
-        std::string _metTag;
-        std::string _muonTag;
-
-        reco::helper::JetIDHelper *_jetID;
+        std::string _beamSpots;
+        std::string _electrons;
+        std::string _genParticles;
+        std::string _jets;
+        std::string _mets;
+        std::string _muons;
 };
 
 #endif
