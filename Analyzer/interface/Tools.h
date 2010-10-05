@@ -12,11 +12,13 @@
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/JetReco/interface/CaloJet.h"
 #include "DataFormats/Math/interface/LorentzVector.h"
+#include "DataFormats/Math/interface/Point3D.h"
 
 #include "Tree/Top/interface/TopElectron.h"
 #include "Tree/Top/interface/TopMuon.h"
 
 class TLorentzVector;
+class TVector3;
 
 namespace reco
 {
@@ -40,6 +42,15 @@ namespace top
         {
             setP4(p4_1, &p4_2);
         }
+
+        inline void setP4(TLorentzVector &p4_1,
+                          const math::XYZTLorentzVector &p4_2)
+        {
+            setP4(&p4_1, &p4_2);
+        }
+
+        void setVertex(TVector3 &,
+                       const math::XYZPoint &);
 
         void setEnergy(top::Jet &, const reco::CaloJet::Specific &);
 

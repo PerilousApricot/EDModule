@@ -7,6 +7,7 @@
  */
 
 #include <TLorentzVector.h>
+#include <TVector3.h>
 
 #include "DataFormats/MuonReco/interface/Muon.h"
 
@@ -17,8 +18,10 @@
 
 #include "EDModule/Analyzer/interface/Tools.h"
 
-void top::tools::setP4(TLorentzVector *topP4,
-                       const math::XYZTLorentzVector *cmsswP4)
+namespace tt = top::tools;
+
+void tt::setP4(TLorentzVector *topP4,
+               const math::XYZTLorentzVector *cmsswP4)
 {
     topP4->SetPxPyPzE(cmsswP4->px(),
                       cmsswP4->py(),
@@ -26,8 +29,13 @@ void top::tools::setP4(TLorentzVector *topP4,
                       cmsswP4->energy());
 }
 
-void top::tools::setEnergy(top::Jet &jet,
-                           const reco::CaloJet::Specific &specific)
+void tt::setVertex(TVector3 &vector, const math::XYZPoint &point)
+{
+    vector.SetXYZ(point.x(), point.y(), point.z());
+}
+
+void tt::setEnergy(top::Jet &jet,
+                   const reco::CaloJet::Specific &specific)
 {
     top::JetEnergy energy;
 
@@ -49,9 +57,9 @@ void top::tools::setEnergy(top::Jet &jet,
     jet.setEnergy(energy);
 }
 
-void top::tools::setIsolation(top::Muon &muon,
-                              const top::Muon::ISO &iso,
-                              const reco::MuonIsolation &recoIso)
+void tt::setIsolation(top::Muon &muon,
+                      const top::Muon::ISO &iso,
+                      const reco::MuonIsolation &recoIso)
 {
     top::MuonIsolation topIso;
 
@@ -69,9 +77,9 @@ void top::tools::setIsolation(top::Muon &muon,
     muon.setIsolation(iso, topIso);
 }
 
-void top::tools::setIsolation(top::Electron &electron,
-                              const top::Electron::ISO &iso,
-                              const reco::GsfElectron::IsolationVariables &recoIso)
+void tt::setIsolation(top::Electron &electron,
+                      const top::Electron::ISO &iso,
+                      const reco::GsfElectron::IsolationVariables &recoIso)
 {
     top::ElectronIsolation topIso;
 
