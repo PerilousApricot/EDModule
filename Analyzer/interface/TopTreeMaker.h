@@ -6,8 +6,8 @@
  * Copyright 2010, All rights reserved
  */
 
-#ifndef TOP_TOPTREEMAKER
-#define TOP_TOPTREEMAKER
+#ifndef TOP_TREEMAKER
+#define TOP_TREEMAKER
 
 #include <string>
 
