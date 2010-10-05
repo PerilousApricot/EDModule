@@ -1,7 +1,7 @@
 import FWCore.ParameterSet.Config as cms
 
-TreeMaker = cms.EDFilter(
-    'TreeMaker',
+TopTreeMaker = cms.EDFilter(
+    'TopTreeMaker',
 
     mets = cms.string("metMuonJESCorAK5"),
     muons = cms.string("muons"),

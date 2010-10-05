@@ -1,13 +1,13 @@
 /**
- * TreeMaker
+ * TopTreeMaker
  * 
  *
  * Created by Samvel Khalatian on August 20, 2010
  * Copyright 2010, All rights reserved
  */
 
-#ifndef TOP_TREEMAKER
-#define TOP_TREEMAKER
+#ifndef TOP_TOPTREEMAKER
+#define TOP_TOPTREEMAKER
 
 #include <string>
 
@@ -16,14 +16,14 @@
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 
-class TreeMaker : public edm::EDAnalyzer
+class TopTreeMaker : public edm::EDAnalyzer
 {
     /*
      * Produce Top ROOT Tree
      */
     public:
-        TreeMaker(const edm::ParameterSet &);
-        virtual ~TreeMaker();
+        TopTreeMaker(const edm::ParameterSet &);
+        virtual ~TopTreeMaker();
 
     private:
         virtual void beginJob();

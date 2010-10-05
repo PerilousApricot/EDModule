@@ -1,5 +1,5 @@
 /**
- * TreeMaker
+ * TopTreeMaker
  * 
  *
  * Created by Samvel Khalatian on August 20, 2010
@@ -35,7 +35,7 @@
 #include "Tree/Top/interface/TopMuon.h"
 #include "Tree/Top/interface/TopMuonIsolation.h"
 
-#include "EDModule/Analyzer/interface/TreeMaker.h"
+#include "EDModule/Analyzer/interface/TopTreeMaker.h"
 
 using std::cout;
 using std::endl;
@@ -52,7 +52,7 @@ using edm::ParameterSet;
 
 using reco::BeamSpot;
 
-TreeMaker::TreeMaker(const edm::ParameterSet &config)
+TopTreeMaker::TopTreeMaker(const edm::ParameterSet &config)
 {
     _beamSpots = config.getParameter<string>("beamSpots");
     _electrons = config.getParameter<string>("electrons");
@@ -62,11 +62,11 @@ TreeMaker::TreeMaker(const edm::ParameterSet &config)
     _muons = config.getParameter<string>("muons");
 }
 
-TreeMaker::~TreeMaker()
+TopTreeMaker::~TopTreeMaker()
 {
 }
 
-void TreeMaker::beginJob()
+void TopTreeMaker::beginJob()
 {
     edm::Service<TFileService> fileService;
 
@@ -76,7 +76,7 @@ void TreeMaker::beginJob()
     _tree->Branch("event", _event.get(), 32000, 0);
 }
 
-void TreeMaker::endJob()
+void TopTreeMaker::endJob()
 {
     if (!_event.get())
         return;
@@ -86,7 +86,7 @@ void TreeMaker::endJob()
     _event.reset();
 }
 
-void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
+void TopTreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 {
     if (!_event.get())
         return;
@@ -151,7 +151,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     if (!genParticles.isValid())
     {
-        LogWarning("TreeMaker")
+        LogWarning("TopTreeMaker")
             << "Failed to extract genParticles.";
 
         return;
@@ -282,4 +282,4 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     _tree->Fill();
 }
 
-DEFINE_FWK_MODULE(TreeMaker);
+DEFINE_FWK_MODULE(TopTreeMaker);
