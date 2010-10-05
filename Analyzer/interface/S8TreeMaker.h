@@ -1,5 +1,5 @@
 /**
- * TreeMaker
+ * S8TreeMaker
  * 
  *
  * Created by Samvel Khalatian on Sep 29, 2010
@@ -14,7 +14,7 @@
 
 #include "TFile.h"
 
-#include "RecoBTag/PerformanceMeasurements/interface/Event.h"
+#include "Tree/System8/interface/S8Event.h"
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -26,14 +26,14 @@ namespace reco
     class Vertex;
 }
 
-class TreeMaker : public edm::EDAnalyzer
+class S8TreeMaker : public edm::EDAnalyzer
 {
     /*
      * Produce S8 ROOT Tree
      */
     public:
-    TreeMaker(const edm::ParameterSet &);
-    virtual ~TreeMaker();
+    S8TreeMaker(const edm::ParameterSet &);
+    virtual ~S8TreeMaker();
 
     private:
     virtual void beginJob();

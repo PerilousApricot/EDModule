@@ -1,5 +1,5 @@
 /**
- * TreeMaker
+ * S8TreeMaker
  * 
  *
  * Created by Samvel Khalatian on Sep 29, 2010
@@ -24,13 +24,13 @@
 #include "FWCore/Utilities/interface/EDMException.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 
-#include "RecoBTag/PerformanceMeasurements/interface/EventID.h"
-#include "RecoBTag/PerformanceMeasurements/interface/GenParticle.h"
-#include "RecoBTag/PerformanceMeasurements/interface/Jet.h"
-#include "RecoBTag/PerformanceMeasurements/interface/Muon.h"
-#include "RecoBTag/PerformanceMeasurements/interface/Tools.h"
+#include "Tree/System8/interface/S8EventID.h"
+#include "Tree/System8/interface/S8GenParticle.h"
+#include "Tree/System8/interface/S8Jet.h"
+#include "Tree/System8/interface/S8Muon.h"
+#include "EDModule/Analyzer/interface/Tools.h"
 
-#include "RecoBTag/PerformanceMeasurements/interface/TreeMaker.h"
+#include "EDModule/Analyzer/interface/S8TreeMaker.h"
 
 using std::cout;
 using std::endl;
@@ -46,20 +46,20 @@ using edm::ParameterSet;
 
 using reco::Vertex;
 
-using namespace s8::tools;
+using namespace top::tools;
 
-TreeMaker::TreeMaker(const edm::ParameterSet &config)
+S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config)
 {
     _primaryVertices = config.getParameter<string>("primaryVertices");
     _jets = config.getParameter<string>("jets");
     _muons = config.getParameter<string>("muons");
 }
 
-TreeMaker::~TreeMaker()
+S8TreeMaker::~S8TreeMaker()
 {
 }
 
-void TreeMaker::beginJob()
+void S8TreeMaker::beginJob()
 {
     edm::Service<TFileService> fileService;
 
@@ -69,7 +69,7 @@ void TreeMaker::beginJob()
     _tree->Branch("event", _event.get(), 32000, 0);
 }
 
-void TreeMaker::endJob()
+void S8TreeMaker::endJob()
 {
     if (!_event.get())
         return;
@@ -78,7 +78,7 @@ void TreeMaker::endJob()
     _event.reset();
 }
 
-void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
+void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 {
     if (!_event.get())
         return;
@@ -93,7 +93,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     if (!muons.isValid())
     {
-        LogWarning("TreeMaker")
+        LogWarning("S8TreeMaker")
             << "failed to extract Muons.";
 
         return;
@@ -106,7 +106,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     if (!jets.isValid())
     {
-        LogWarning("TreeMaker")
+        LogWarning("S8TreeMaker")
             << "failed to extract Jets.";
 
         return;
@@ -121,7 +121,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     if (!primaryVertices.isValid())
     {
-        LogWarning("TreeMaker")
+        LogWarning("S8TreeMaker")
             << "failed to extract Primary Vertices.";
 
         return;
@@ -129,7 +129,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     if (primaryVertices->empty())
     {
-        LogWarning("TreeMaker")
+        LogWarning("S8TreeMaker")
             << "primary vertices collection is empty.";
 
         return;
@@ -237,7 +237,7 @@ void TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     _tree->Fill();
 }
 
-bool TreeMaker::isGoodPrimaryVertex(const Vertex &vertex,
+bool S8TreeMaker::isGoodPrimaryVertex(const Vertex &vertex,
                                     const bool &isData)
 {
     return !vertex.isFake() &&
@@ -246,4 +246,4 @@ bool TreeMaker::isGoodPrimaryVertex(const Vertex &vertex,
             2 >= fabs(vertex.position().Rho());
 }
 
-DEFINE_FWK_MODULE(TreeMaker);
+DEFINE_FWK_MODULE(S8TreeMaker);
