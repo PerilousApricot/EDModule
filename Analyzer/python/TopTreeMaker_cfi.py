@@ -1,11 +1,11 @@
 import FWCore.ParameterSet.Config as cms
 
-TopTreeMaker = cms.EDFilter(
+TopTreeMaker = cms.EDAnalyzer(
     'TopTreeMaker',
 
-    mets = cms.string("metMuonJESCorAK5"),
-    muons = cms.string("muons"),
-    jets = cms.string("ak5CaloJetsL2L3"),
-    electrons = cms.string("gsfElectrons"),
+    mets = cms.string("patMETs"),
+    muons = cms.string("selectedPatMuons"),
+    jets = cms.string("selectedPatJets"),
+    electrons = cms.string("selectedPatElectrons"),
     beamSpots = cms.string("offlineBeamSpot")
 )
