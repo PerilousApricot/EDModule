@@ -17,6 +17,7 @@
 <use name=FWCore/ServiceRegistry>
 <use name=FWCore/Utilities>
 <use name=RecoJets/JetAlgorithms>
+<use name=SimDataFormats/GeneratorProducts>
 <use name=Tree/Top>
 <use name=Tree/System8>
 

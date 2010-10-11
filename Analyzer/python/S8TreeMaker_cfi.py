@@ -5,5 +5,7 @@ S8TreeMaker = cms.EDAnalyzer(
 
     primaryVertices = cms.string("offlinePrimaryVertices"),
     muons = cms.string("selectedPatMuonsForPtRel"),
-    jets = cms.string("selectedPatJetsAK5PF")
+    jets = cms.string("selectedPatJetsAK5PF"),
+
+    isPythia = cms.bool(False)
 )

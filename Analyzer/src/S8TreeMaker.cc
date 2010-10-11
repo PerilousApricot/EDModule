@@ -23,8 +23,10 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/Utilities/interface/EDMException.h"
 #include "FWCore/Utilities/interface/InputTag.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 
 #include "Tree/System8/interface/S8EventID.h"
+#include "Tree/System8/interface/S8GenEvent.h"
 #include "Tree/System8/interface/S8GenParticle.h"
 #include "Tree/System8/interface/S8Jet.h"
 #include "Tree/System8/interface/S8Muon.h"
@@ -53,6 +55,8 @@ S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config)
     _primaryVertices = config.getParameter<string>("primaryVertices");
     _jets = config.getParameter<string>("jets");
     _muons = config.getParameter<string>("muons");
+
+    _isPythia = config.getParameter<bool>("isPythia");
 }
 
 S8TreeMaker::~S8TreeMaker()
@@ -137,6 +141,24 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     }
 
     _event->reset();
+
+    // check if Event is Pythia
+    //
+    if (_isPythia && !event.isRealData())
+    {
+        Handle<GenEventInfoProduct> generator;
+        event.getByLabel(InputTag("generator"), generator);
+
+        if (!generator.isValid())
+        {
+            LogWarning("S8TreeMaker")
+                << "failed to extract Generator";
+
+            return;
+        }
+
+        _event->gen().setPtHat(generator->qScale());
+    }
 
     {
         s8::EventID &id = _event->id();
