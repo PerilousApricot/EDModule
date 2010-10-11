@@ -75,6 +75,7 @@ void S8TreeMaker::endJob()
         return;
 
     // Note: Event should be destroyed after ROOT file is written and closed.
+    //
     _event.reset();
 }
 
@@ -182,6 +183,8 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         s8Muon.impactParameter().first = muon->dB();
         s8Muon.impactParameter().second = muon->edB();
 
+        // Extract GenParticle information
+        //
         if (muon->genLepton())
         {
             s8::GenParticle &s8GenParticle = s8Muon.genParticle();
