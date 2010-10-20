@@ -48,6 +48,7 @@ class S8TreeMaker : public edm::EDAnalyzer
     std::string _primaryVertices;
     std::string _jets;
     std::string _muons;
+    std::string _electrons;
     bool        _isPythia;
 };
 

@@ -15,6 +15,7 @@
 #include "DataFormats/Common/interface/Handle.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -29,7 +30,7 @@
 #include "Tree/System8/interface/S8GenEvent.h"
 #include "Tree/System8/interface/S8GenParticle.h"
 #include "Tree/System8/interface/S8Jet.h"
-#include "Tree/System8/interface/S8Muon.h"
+#include "Tree/System8/interface/S8Lepton.h"
 #include "EDModule/Analyzer/interface/Tools.h"
 
 #include "EDModule/Analyzer/interface/S8TreeMaker.h"
@@ -55,6 +56,7 @@ S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config)
     _primaryVertices = config.getParameter<string>("primaryVertices");
     _jets = config.getParameter<string>("jets");
     _muons = config.getParameter<string>("muons");
+    _electrons = config.getParameter<string>("electrons");
 
     _isPythia = config.getParameter<bool>("isPythia");
 }
@@ -90,16 +92,22 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     using pat::JetCollection;
     using pat::MuonCollection;
+    using pat::ElectronCollection;
 
     // Extract Muons
     //
     Handle<MuonCollection> muons;
     event.getByLabel(InputTag(_muons), muons);
 
-    if (!muons.isValid())
+    // Extract Electrons
+    //
+    Handle<ElectronCollection> electrons;
+    event.getByLabel(InputTag(_electrons), electrons);
+
+    if (!muons.isValid() && !electrons.isValid())
     {
         LogWarning("S8TreeMaker")
-            << "failed to extract Muons.";
+            << "failed to extract Leptons.";
 
         return;
     }
@@ -197,7 +205,7 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         if (1 >= muon->numberOfMatches())
             continue;
 
-        s8::Muon s8Muon;
+        s8::Lepton s8Muon;
 
         setP4(s8Muon.p4(), muon->p4());
         setVertex(s8Muon.vertex(), muon->vertex());
@@ -221,6 +229,37 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
         _event->muons().push_back(s8Muon);
     } // End loop over muons
+
+    // Process all Electrons
+    //
+    for(ElectronCollection::const_iterator electron = electrons->begin();
+        electrons->end() != electron;
+        ++electron)
+    {
+        s8::Lepton s8Electron;
+
+        setP4(s8Electron.p4(), electron->p4());
+        setVertex(s8Electron.vertex(), electron->vertex());
+
+        s8Electron.impactParameter().first = electron->dB();
+        s8Electron.impactParameter().second = electron->edB();
+
+        // Extract GenParticle information
+        //
+        if (electron->genLepton())
+        {
+            s8::GenParticle &s8GenParticle = s8Electron.genParticle();
+
+            setP4(s8GenParticle.p4(), electron->genLepton()->p4());
+            setVertex(s8GenParticle.vertex(), electron->genLepton()->vertex());
+
+            s8GenParticle.setId(electron->genLepton()->pdgId());
+            if (electron->genLepton()->mother())
+                s8GenParticle.setParentId(electron->genLepton()->mother()->pdgId());
+        }
+
+        _event->electrons().push_back(s8Electron);
+    } // End loop over electrons
 
     // Process All Jets
     //
