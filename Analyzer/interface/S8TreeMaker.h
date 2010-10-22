@@ -32,24 +32,27 @@ class S8TreeMaker : public edm::EDAnalyzer
      * Produce S8 ROOT Tree
      */
     public:
-    S8TreeMaker(const edm::ParameterSet &);
-    virtual ~S8TreeMaker();
+        S8TreeMaker(const edm::ParameterSet &);
+        virtual ~S8TreeMaker();
 
     private:
-    virtual void beginJob();
-    virtual void analyze(const edm::Event &, const edm::EventSetup &);
-    virtual void endJob();
+        virtual void beginJob();
+        virtual void analyze(const edm::Event &, const edm::EventSetup &);
+        virtual void endJob();
 
-    bool isGoodPrimaryVertex(const reco::Vertex &, const bool & = false); 
+        bool isGoodPrimaryVertex(const reco::Vertex &, const bool & = false); 
 
-    std::auto_ptr<s8::Event>  _event;
-    TTree                    *_tree;
+        void processTriggers(const edm::Event &, const edm::TriggerResults &);
 
-    std::string _primaryVertices;
-    std::string _jets;
-    std::string _muons;
-    std::string _electrons;
-    bool        _isPythia;
+        std::auto_ptr<s8::Event>  _event;
+        TTree                    *_tree;
+
+        std::string _primaryVertices;
+        std::string _jets;
+        std::string _muons;
+        std::string _electrons;
+        std::string _triggers;
+        bool        _isPythia;
 };
 
 #endif

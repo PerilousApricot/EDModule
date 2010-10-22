@@ -9,14 +9,19 @@
 #include <iostream>
 #include <vector>
 
+#include <boost/lexical_cast.hpp>
+#include <boost/regex.hpp>
+
 #include <TTree.h>
 
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "DataFormats/Common/interface/Handle.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
+#include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -40,12 +45,18 @@ using std::endl;
 using std::string;
 using std::vector;
 
+using boost::lexical_cast;
+using boost::regex;
+using boost::smatch;
+
 using edm::errors::ErrorCodes;
 using edm::Handle;
 using edm::InputTag;
 using edm::LogWarning;
 using edm::LogInfo;
 using edm::ParameterSet;
+using edm::TriggerResults;
+using edm::TriggerNames;
 
 using reco::Vertex;
 
@@ -57,6 +68,7 @@ S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config)
     _jets = config.getParameter<string>("jets");
     _muons = config.getParameter<string>("muons");
     _electrons = config.getParameter<string>("electrons");
+    _triggers = config.getParameter<string>("triggers");
 
     _isPythia = config.getParameter<bool>("isPythia");
 }
@@ -148,6 +160,19 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         return;
     }
 
+    // Triggers
+    //
+    Handle<TriggerResults> triggers;
+    event.getByLabel(InputTag(_triggers), triggers);
+
+    if (!triggers.isValid())
+    {
+        LogWarning("S8TreeMaker")
+            << "failed to extract Triggers";
+
+        return;
+    }
+
     _event->reset();
 
     // check if Event is Pythia
@@ -175,6 +200,8 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         id.setLumiBlock(event.id().luminosityBlock());
         id.setEvent(event.id().event());
     }
+
+    processTriggers(event, *triggers);
 
     // Process Primary Vertices
     //
@@ -308,6 +335,42 @@ bool S8TreeMaker::isGoodPrimaryVertex(const Vertex &vertex,
             4 <= vertex.ndof() &&
             (isData ? 24 : 15) >= fabs(vertex.z()) &&
             2 >= fabs(vertex.position().Rho());
+}
+
+void S8TreeMaker::processTriggers(const edm::Event &event,
+                                  const TriggerResults &triggers)
+{
+    // Get list of triggers
+    //
+    typedef std::vector<std::string> Triggers;
+    const Triggers &triggerNames =
+        event.triggerNames(triggers).triggerNames();
+
+    for(Triggers::const_iterator trigger = triggerNames.begin();
+        triggerNames.end() != trigger;
+        ++trigger)
+    {
+        // check if this is any trigger version
+        //
+        s8::Trigger s8Trigger;
+        
+        smatch matches;
+        if (!regex_match(*trigger, matches, regex("^(.*)(?:_v(\\d+))?$")))
+        {
+            LogWarning("S8TreeMaker")
+                << "Do not understand trigger: " << *trigger;
+        }
+
+        s8Trigger.setName(matches[1]);
+
+        if (matches[2].matched)
+            s8Trigger.setVersion(lexical_cast<int>(matches[2]));
+
+        s8Trigger.setIsPass(triggers.accept(distance(triggerNames.begin(),
+                                                     trigger)));
+
+        _event->triggers().push_back(s8Trigger);
+    }
 }
 
 DEFINE_FWK_MODULE(S8TreeMaker);

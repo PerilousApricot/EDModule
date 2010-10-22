@@ -7,6 +7,7 @@ S8TreeMaker = cms.EDAnalyzer(
     muons = cms.string("selectedPatMuonsForPtRel"),
     electrons = cms.string("selectedPatElectronsForS8"),
     jets = cms.string("selectedPatJetsAK5PF"),
+    triggers = cms.string("TriggerResults::REDIGI"),
 
     isPythia = cms.bool(False)
 )
