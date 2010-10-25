@@ -15,6 +15,7 @@
 #include "TFile.h"
 
 #include "Tree/System8/interface/S8Event.h"
+#include "Tree/System8/interface/S8TreeInfo.h"
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -44,8 +45,9 @@ class S8TreeMaker : public edm::EDAnalyzer
 
         void processTriggers(const edm::Event &, const edm::TriggerResults &);
 
-        std::auto_ptr<s8::Event>  _event;
-        TTree                    *_tree;
+        std::auto_ptr<s8::Event>     _event;
+        std::auto_ptr<s8::TreeInfo>  _treeInfo;
+        TTree                       *_tree;
 
         std::string _primaryVertices;
         std::string _jets;
