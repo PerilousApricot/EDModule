@@ -36,6 +36,7 @@
 #include "Tree/System8/interface/S8GenParticle.h"
 #include "Tree/System8/interface/S8Jet.h"
 #include "Tree/System8/interface/S8Lepton.h"
+#include "Tree/System8/interface/S8TreeInfo.h"
 #include "EDModule/Analyzer/interface/Tools.h"
 
 #include "EDModule/Analyzer/interface/S8TreeMaker.h"
@@ -60,17 +61,51 @@ using edm::TriggerNames;
 
 using reco::Vertex;
 
+using s8::TreeInfo;
+
 using namespace top::tools;
 
-S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config)
+S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
+    _isPythia(false)
 {
+    _treeInfo.reset(new TreeInfo);
+
     _primaryVertices = config.getParameter<string>("primaryVertices");
     _jets = config.getParameter<string>("jets");
     _muons = config.getParameter<string>("muons");
     _electrons = config.getParameter<string>("electrons");
     _triggers = config.getParameter<string>("triggers");
 
-    _isPythia = config.getParameter<bool>("isPythia");
+    const string inputType = config.getParameter<string>("inputType");
+    if ("BTau" == inputType)
+        _treeInfo->setInput(TreeInfo::BTau);
+
+    else if ("InclusiveMu5_Pt30" == inputType)
+    {
+        _treeInfo->setInput(TreeInfo::InclusiveMu5_Pt30);
+        _isPythia = true;
+    }
+
+    else if ("InclusiveMu5_Pt50" == inputType)
+    {
+        _treeInfo->setInput(TreeInfo::InclusiveMu5_Pt50);
+        _isPythia = true;
+    }
+
+    else if ("InclusiveMu5_Pt150" == inputType)
+    {
+        _treeInfo->setInput(TreeInfo::InclusiveMu5_Pt150);
+        _isPythia = true;
+    }
+
+    else if ("TTbar" == inputType)
+        _treeInfo->setInput(TreeInfo::TTbar);
+
+    else if ("BBbar" == inputType)
+        _treeInfo->setInput(TreeInfo::BBbar);
+
+    else if ("ppMuX" == inputType)
+        _treeInfo->setInput(TreeInfo::ppMuX);
 }
 
 S8TreeMaker::~S8TreeMaker()
@@ -95,6 +130,10 @@ void S8TreeMaker::endJob()
     // Note: Event should be destroyed after ROOT file is written and closed.
     //
     _event.reset();
+
+    edm::Service<TFileService> fileService;
+    TDirectory *dir = fileService->cd();
+    dir->WriteObject(_treeInfo.get(), "s8info");
 }
 
 void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
@@ -340,36 +379,48 @@ bool S8TreeMaker::isGoodPrimaryVertex(const Vertex &vertex,
 void S8TreeMaker::processTriggers(const edm::Event &event,
                                   const TriggerResults &triggers)
 {
+    using s8::Trigger;
+
     // Get list of triggers
     //
     typedef std::vector<std::string> Triggers;
     const Triggers &triggerNames =
         event.triggerNames(triggers).triggerNames();
 
+    typedef std::map<s8::Trigger::HLT, std::string> HLTs;
+
+    HLTs hlts;
+    hlts[Trigger::BTagMu_Jet10U]   = "HLT_BTagMu_Jet10U";
+    hlts[Trigger::BTagMu_Jet20U]   = "HLT_BTagMu_Jet20U";
+    hlts[Trigger::BTagMu_DiJet20U] = "HLT_BTagMu_DiJet20U";
+
     for(Triggers::const_iterator trigger = triggerNames.begin();
         triggerNames.end() != trigger;
         ++trigger)
     {
-        // check if this is any trigger version
-        //
-        s8::Trigger s8Trigger;
-        
-        smatch matches;
-        if (!regex_match(*trigger, matches, regex("^(.*)(?:_v(\\d+))?$")))
+        for(HLTs::const_iterator hlt = hlts.begin();
+            hlts.end() != hlt;
+            ++hlt)
         {
-            LogWarning("S8TreeMaker")
-                << "Do not understand trigger: " << *trigger;
+            smatch matches;
+            if (!regex_match(*trigger, matches,
+                             regex("^(" + hlt->second + ")(?:_v(\\d+))?$")))
+                continue;
+
+            Trigger s8Trigger;
+            s8Trigger.setHLT(hlt->first);
+            
+            if (matches[2].matched)
+                s8Trigger.setVersion(lexical_cast<int>(matches[2]));
+
+            s8Trigger.setIsPass(triggers.accept(distance(triggerNames.begin(),
+                                                         trigger)));
+
+
+            _event->triggers().push_back(s8Trigger);
+
+            break;
         }
-
-        s8Trigger.setName(matches[1]);
-
-        if (matches[2].matched)
-            s8Trigger.setVersion(lexical_cast<int>(matches[2]));
-
-        s8Trigger.setIsPass(triggers.accept(distance(triggerNames.begin(),
-                                                     trigger)));
-
-        _event->triggers().push_back(s8Trigger);
     }
 }
 
