@@ -9,5 +9,5 @@ S8TreeMaker = cms.EDAnalyzer(
     jets = cms.string("selectedPatJetsAK5PF"),
     triggers = cms.string("TriggerResults::REDIGI"),
 
-    isPythia = cms.bool(False)
+    inputType = cms.string("undefined")
 )
