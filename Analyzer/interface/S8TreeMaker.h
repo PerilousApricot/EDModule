@@ -19,6 +19,7 @@
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "PhysicsTools/SelectorUtils/interface/PFJetIDSelectionFunctor.h"
 
 class TTree;
 
@@ -48,6 +49,7 @@ class S8TreeMaker : public edm::EDAnalyzer
         std::auto_ptr<s8::Event>     _event;
         std::auto_ptr<s8::TreeInfo>  _treeInfo;
         TTree                       *_tree;
+        PFJetIDSelectionFunctor      _jetSelector;
 
         std::string _primaryVertices;
         std::string _jets;

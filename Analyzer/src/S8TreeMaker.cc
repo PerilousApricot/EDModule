@@ -76,6 +76,8 @@ S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
     _electrons = config.getParameter<string>("electrons");
     _triggers = config.getParameter<string>("triggers");
 
+    _jetSelector = config.getParameter<ParameterSet>("jetSelector");
+
     const string inputType = config.getParameter<string>("inputType");
     if ("BTau" == inputType)
         _treeInfo->setInput(TreeInfo::BTau);
@@ -131,9 +133,11 @@ void S8TreeMaker::endJob()
     //
     _event.reset();
 
+    /*
     edm::Service<TFileService> fileService;
     TDirectory *dir = fileService->cd();
     dir->WriteObject(_treeInfo.get(), "s8info");
+    */
 }
 
 void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
@@ -329,10 +333,14 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
     // Process All Jets
     //
+    pat::strbitset jetBitset = _jetSelector.getBitTemplate();
     for(JetCollection::const_iterator jet = jets->begin();
         jets->end() != jet;
         ++jet)
     {
+        if (!_jetSelector(*jet, jetBitset))
+            continue;
+
         using s8::Jet;
         Jet s8Jet;
 
