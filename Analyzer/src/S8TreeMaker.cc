@@ -140,7 +140,20 @@ void S8TreeMaker::endJob()
     //dir->WriteObject(_treeInfo.get(), "s8info");
 }
 
-void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
+void S8TreeMaker::beginRun(const edm::Run &run,
+                           const edm::EventSetup &eventSetup)
+{
+    // Initialize HLT Config Provider for new Run
+    //
+    bool didChange = true;
+    _hltConfigProvider.init(run,
+                            eventSetup,
+                            InputTag(_triggers).process(),
+                            didChange);
+}
+
+void S8TreeMaker::analyze(const edm::Event &event,
+                          const edm::EventSetup &eventSetup)
 {
     if (!_event.get())
         return;
@@ -169,7 +182,7 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
     processJets(event);
     processMuons(event);
     processPrimaryVertices(event);
-    processTriggers(event);
+    processTriggers(event, eventSetup);
 
     _tree->Fill();
 }
@@ -389,7 +402,8 @@ void S8TreeMaker::processPrimaryVertices(const edm::Event &event)
     }
 }
 
-void S8TreeMaker::processTriggers(const edm::Event &event)
+void S8TreeMaker::processTriggers(const edm::Event &event,
+                                  const edm::EventSetup &eventSetup)
 {
     using s8::Trigger;
 
@@ -432,6 +446,8 @@ void S8TreeMaker::processTriggers(const edm::Event &event)
                              regex("^(" + hlt->second + ")(?:_v(\\d+))?$")))
                 continue;
 
+            // Found Trigger of the interest
+            //
             Trigger s8Trigger;
             s8Trigger.setHLT(hlt->first);
             
@@ -441,6 +457,8 @@ void S8TreeMaker::processTriggers(const edm::Event &event)
             s8Trigger.setIsPass(triggers->accept(distance(triggerNames.begin(),
                                                          trigger)));
 
+            s8Trigger.setPrescale(_hltConfigProvider.prescaleValue(event,
+                        eventSetup, *trigger));
 
             _event->triggers().push_back(s8Trigger);
 

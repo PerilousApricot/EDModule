@@ -16,6 +16,7 @@
 <use name=FWCore/ParameterSet>
 <use name=FWCore/ServiceRegistry>
 <use name=FWCore/Utilities>
+<use name=HLTrigger/HLTcore>
 <use name=PhysicsTools/SelectorUtils>
 <use name=RecoJets/JetAlgorithms>
 <use name=SimDataFormats/GeneratorProducts>

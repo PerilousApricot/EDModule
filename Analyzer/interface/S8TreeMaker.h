@@ -19,6 +19,7 @@
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
 #include "PhysicsTools/SelectorUtils/interface/PFJetIDSelectionFunctor.h"
 
 class TTree;
@@ -39,6 +40,7 @@ class S8TreeMaker : public edm::EDAnalyzer
 
     private:
         virtual void beginJob();
+        virtual void beginRun(const edm::Run &, const edm::EventSetup &);
         virtual void analyze(const edm::Event &, const edm::EventSetup &);
         virtual void endJob();
 
@@ -47,7 +49,7 @@ class S8TreeMaker : public edm::EDAnalyzer
         void processJets(const edm::Event &);
         void processMuons(const edm::Event &);
         void processPrimaryVertices(const edm::Event &);
-        void processTriggers(const edm::Event &);
+        void processTriggers(const edm::Event &, const edm::EventSetup &);
 
         bool isGoodPrimaryVertex(const reco::Vertex &, const bool & = false); 
 
@@ -55,6 +57,7 @@ class S8TreeMaker : public edm::EDAnalyzer
         std::auto_ptr<s8::TreeInfo>  _treeInfo;
         TTree                       *_tree;
         PFJetIDSelectionFunctor      _jetSelector;
+        HLTConfigProvider            _hltConfigProvider;
 
         std::string _primaryVertices;
         std::string _jets;
