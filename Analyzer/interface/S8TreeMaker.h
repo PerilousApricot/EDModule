@@ -42,9 +42,14 @@ class S8TreeMaker : public edm::EDAnalyzer
         virtual void analyze(const edm::Event &, const edm::EventSetup &);
         virtual void endJob();
 
-        bool isGoodPrimaryVertex(const reco::Vertex &, const bool & = false); 
+        void processEventID(const edm::Event &);
+        void processElectrons(const edm::Event &);
+        void processJets(const edm::Event &);
+        void processMuons(const edm::Event &);
+        void processPrimaryVertices(const edm::Event &);
+        void processTriggers(const edm::Event &);
 
-        void processTriggers(const edm::Event &, const edm::TriggerResults &);
+        bool isGoodPrimaryVertex(const reco::Vertex &, const bool & = false); 
 
         std::auto_ptr<s8::Event>     _event;
         std::auto_ptr<s8::TreeInfo>  _treeInfo;

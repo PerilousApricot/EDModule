@@ -133,88 +133,17 @@ void S8TreeMaker::endJob()
     //
     _event.reset();
 
-    /*
-    edm::Service<TFileService> fileService;
-    TDirectory *dir = fileService->cd();
-    dir->WriteObject(_treeInfo.get(), "s8info");
-    */
+    // Tree Info is disabled for the moment until Hadd is fixed
+    //
+    //edm::Service<TFileService> fileService;
+    //TDirectory *dir = fileService->cd();
+    //dir->WriteObject(_treeInfo.get(), "s8info");
 }
 
 void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 {
     if (!_event.get())
         return;
-
-    using pat::JetCollection;
-    using pat::MuonCollection;
-    using pat::ElectronCollection;
-
-    // Extract Muons
-    //
-    Handle<MuonCollection> muons;
-    event.getByLabel(InputTag(_muons), muons);
-
-    // Extract Electrons
-    //
-    Handle<ElectronCollection> electrons;
-    event.getByLabel(InputTag(_electrons), electrons);
-
-    if (!muons.isValid() && !electrons.isValid())
-    {
-        LogWarning("S8TreeMaker")
-            << "failed to extract Leptons.";
-
-        return;
-    }
-
-    // Extract Jets
-    //
-    Handle<JetCollection> jets;
-    event.getByLabel(InputTag(_jets), jets);
-
-    if (!jets.isValid())
-    {
-        LogWarning("S8TreeMaker")
-            << "failed to extract Jets.";
-
-        return;
-    }
-
-    // Primary Vertices
-    //
-    typedef vector<Vertex> PVCollection;
-
-    Handle<PVCollection> primaryVertices;
-    event.getByLabel(InputTag(_primaryVertices), primaryVertices);
-
-    if (!primaryVertices.isValid())
-    {
-        LogWarning("S8TreeMaker")
-            << "failed to extract Primary Vertices.";
-
-        return;
-    }
-
-    if (primaryVertices->empty())
-    {
-        LogWarning("S8TreeMaker")
-            << "primary vertices collection is empty.";
-
-        return;
-    }
-
-    // Triggers
-    //
-    Handle<TriggerResults> triggers;
-    event.getByLabel(InputTag(_triggers), triggers);
-
-    if (!triggers.isValid())
-    {
-        LogWarning("S8TreeMaker")
-            << "failed to extract Triggers";
-
-        return;
-    }
 
     _event->reset();
 
@@ -236,69 +165,40 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
         _event->gen().setPtHat(generator->qScale());
     }
 
-    {
-        s8::EventID &id = _event->id();
+    processElectrons(event);
+    processJets(event);
+    processMuons(event);
+    processPrimaryVertices(event);
+    processTriggers(event);
 
-        id.setRun(event.id().run());
-        id.setLumiBlock(event.id().luminosityBlock());
-        id.setEvent(event.id().event());
-    }
+    _tree->Fill();
+}
 
-    processTriggers(event, *triggers);
+void S8TreeMaker::processEventID(const edm::Event &event)
+{
+    s8::EventID &id = _event->id();
 
-    // Process Primary Vertices
+    id.setRun(event.id().run());
+    id.setLumiBlock(event.id().luminosityBlock());
+    id.setEvent(event.id().event());
+}
+
+void S8TreeMaker::processElectrons(const edm::Event &event)
+{
+    using pat::ElectronCollection;
+
+    // Extract Electrons
     //
-    for(PVCollection::const_iterator vertex = primaryVertices->begin();
-        primaryVertices->end() != vertex;
-        ++vertex)
+    Handle<ElectronCollection> electrons;
+    event.getByLabel(InputTag(_electrons), electrons);
+
+    if (!electrons.isValid())
     {
-        if (!isGoodPrimaryVertex(*vertex, event.isRealData()))
-            continue;
+        LogWarning("S8TreeMaker")
+            << "failed to extract Electrons.";
 
-        s8::PrimaryVertex s8Vertex;
-
-        setVertex(s8Vertex.vertex(), vertex->position());
-        s8Vertex.setNdof(vertex->ndof());
-        s8Vertex.setRho(vertex->position().Rho());
-
-        _event->primaryVertices().push_back(s8Vertex);
+        return;
     }
-
-    // Process all Muons
-    //
-    for(MuonCollection::const_iterator muon = muons->begin();
-        muons->end() != muon;
-        ++muon)
-    {
-        // Only Muons with basic cuts are saved:
-        //
-        if (1 >= muon->numberOfMatches())
-            continue;
-
-        s8::Lepton s8Muon;
-
-        setP4(s8Muon.p4(), muon->p4());
-        setVertex(s8Muon.vertex(), muon->vertex());
-
-        s8Muon.impactParameter().first = muon->dB();
-        s8Muon.impactParameter().second = muon->edB();
-
-        // Extract GenParticle information
-        //
-        if (muon->genLepton())
-        {
-            s8::GenParticle &s8GenParticle = s8Muon.genParticle();
-
-            setP4(s8GenParticle.p4(), muon->genLepton()->p4());
-            setVertex(s8GenParticle.vertex(), muon->genLepton()->vertex());
-
-            s8GenParticle.setId(muon->genLepton()->pdgId());
-            if (muon->genLepton()->mother())
-                s8GenParticle.setParentId(muon->genLepton()->mother()->pdgId());
-        }
-
-        _event->muons().push_back(s8Muon);
-    } // End loop over muons
 
     // Process all Electrons
     //
@@ -330,6 +230,24 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
         _event->electrons().push_back(s8Electron);
     } // End loop over electrons
+}
+
+void S8TreeMaker::processJets(const edm::Event &event)
+{
+    using pat::JetCollection;
+
+    // Extract Jets
+    //
+    Handle<JetCollection> jets;
+    event.getByLabel(InputTag(_jets), jets);
+
+    if (!jets.isValid())
+    {
+        LogWarning("S8TreeMaker")
+            << "failed to extract Jets.";
+
+        return;
+    }
 
     // Process All Jets
     //
@@ -371,29 +289,128 @@ void S8TreeMaker::analyze(const edm::Event &event, const edm::EventSetup &)
 
         _event->jets().push_back(s8Jet);
     }
-
-    _tree->Fill();
 }
 
-bool S8TreeMaker::isGoodPrimaryVertex(const Vertex &vertex,
-                                    const bool &isData)
+void S8TreeMaker::processMuons(const edm::Event &event)
 {
-    return !vertex.isFake() &&
-            4 <= vertex.ndof() &&
-            (isData ? 24 : 15) >= fabs(vertex.z()) &&
-            2 >= fabs(vertex.position().Rho());
+    using pat::MuonCollection;
+
+    // Extract Muons
+    //
+    Handle<MuonCollection> muons;
+    event.getByLabel(InputTag(_muons), muons);
+
+    if (!muons.isValid())
+    {
+        LogWarning("S8TreeMaker")
+            << "failed to extract Muons.";
+
+        return;
+    }
+
+    // Process all Muons
+    //
+    for(MuonCollection::const_iterator muon = muons->begin();
+        muons->end() != muon;
+        ++muon)
+    {
+        // Only Muons with basic cuts are saved:
+        //
+        if (1 >= muon->numberOfMatches())
+            continue;
+
+        s8::Lepton s8Muon;
+
+        setP4(s8Muon.p4(), muon->p4());
+        setVertex(s8Muon.vertex(), muon->vertex());
+
+        s8Muon.impactParameter().first = muon->dB();
+        s8Muon.impactParameter().second = muon->edB();
+
+        // Extract GenParticle information
+        //
+        if (muon->genLepton())
+        {
+            s8::GenParticle &s8GenParticle = s8Muon.genParticle();
+
+            setP4(s8GenParticle.p4(), muon->genLepton()->p4());
+            setVertex(s8GenParticle.vertex(), muon->genLepton()->vertex());
+
+            s8GenParticle.setId(muon->genLepton()->pdgId());
+            if (muon->genLepton()->mother())
+                s8GenParticle.setParentId(muon->genLepton()->mother()->pdgId());
+        }
+
+        _event->muons().push_back(s8Muon);
+    } // End loop over muons
 }
 
-void S8TreeMaker::processTriggers(const edm::Event &event,
-                                  const TriggerResults &triggers)
+void S8TreeMaker::processPrimaryVertices(const edm::Event &event)
+{
+    // Primary Vertices
+    //
+    typedef vector<Vertex> PVCollection;
+
+    Handle<PVCollection> primaryVertices;
+    event.getByLabel(InputTag(_primaryVertices), primaryVertices);
+
+    if (!primaryVertices.isValid())
+    {
+        LogWarning("S8TreeMaker")
+            << "failed to extract Primary Vertices.";
+
+        return;
+    }
+
+    if (primaryVertices->empty())
+    {
+        LogWarning("S8TreeMaker")
+            << "primary vertices collection is empty.";
+
+        return;
+    }
+
+    // Process Primary Vertices
+    //
+    for(PVCollection::const_iterator vertex = primaryVertices->begin();
+        primaryVertices->end() != vertex;
+        ++vertex)
+    {
+        if (!isGoodPrimaryVertex(*vertex, event.isRealData()))
+            continue;
+
+        s8::PrimaryVertex s8Vertex;
+
+        setVertex(s8Vertex.vertex(), vertex->position());
+        s8Vertex.setNdof(vertex->ndof());
+        s8Vertex.setRho(vertex->position().Rho());
+
+        _event->primaryVertices().push_back(s8Vertex);
+    }
+}
+
+void S8TreeMaker::processTriggers(const edm::Event &event)
 {
     using s8::Trigger;
+
+    // Triggers
+    //
+    Handle<TriggerResults> triggers;
+    event.getByLabel(InputTag(_triggers), triggers);
+
+    if (!triggers.isValid())
+    {
+        LogWarning("S8TreeMaker")
+            << "failed to extract Triggers";
+
+        return;
+    }
 
     // Get list of triggers
     //
     typedef std::vector<std::string> Triggers;
     const Triggers &triggerNames =
-        event.triggerNames(triggers).triggerNames();
+        event.triggerNames(*triggers).triggerNames();
 
     typedef std::map<s8::Trigger::HLT, std::string> HLTs;
 
@@ -421,7 +438,7 @@ void S8TreeMaker::processTriggers(const edm::Event &event,
             if (matches[2].matched)
                 s8Trigger.setVersion(lexical_cast<int>(matches[2]));
 
-            s8Trigger.setIsPass(triggers.accept(distance(triggerNames.begin(),
+            s8Trigger.setIsPass(triggers->accept(distance(triggerNames.begin(),
                                                          trigger)));
 
 
@@ -430,6 +447,15 @@ void S8TreeMaker::processTriggers(const edm::Event &event,
             break;
         }
     }
+}
+
+bool S8TreeMaker::isGoodPrimaryVertex(const Vertex &vertex,
+                                    const bool &isData)
+{
+    return !vertex.isFake() &&
+            4 <= vertex.ndof() &&
+            (isData ? 24 : 15) >= fabs(vertex.z()) &&
+            2 >= fabs(vertex.position().Rho());
 }
 
 DEFINE_FWK_MODULE(S8TreeMaker);
