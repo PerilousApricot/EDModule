@@ -66,7 +66,8 @@ using s8::TreeInfo;
 using namespace top::tools;
 
 S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
-    _isPythia(false)
+    _isPythia(false),
+    _didInitializeHltConfigProvider(false)
 {
     _treeInfo.reset(new TreeInfo);
 
@@ -122,6 +123,8 @@ void S8TreeMaker::beginJob()
 
     _event.reset(new s8::Event());
     _tree->Branch("event", _event.get(), 32000, 0);
+
+    _didInitializeHltConfigProvider = false;
 }
 
 void S8TreeMaker::endJob()
@@ -143,13 +146,72 @@ void S8TreeMaker::endJob()
 void S8TreeMaker::beginRun(const edm::Run &run,
                            const edm::EventSetup &eventSetup)
 {
+    using s8::Trigger;
+
     // Initialize HLT Config Provider for new Run
     //
     bool didChange = true;
-    _hltConfigProvider.init(run,
-                            eventSetup,
-                            InputTag(_triggers).process(),
-                            didChange);
+    if (!_hltConfigProvider.init(run,
+                                 eventSetup,
+                                 InputTag(_triggers).process(),
+                                 didChange))
+
+        throw cms::Exception("S8TreeMaker")
+            << "Failed to initialize HLTConfig for: " << _triggers;
+
+    // Test if Trigger Menu has changed
+    //
+    if (!didChange &&
+        _didInitializeHltConfigProvider)
+
+        return;
+
+    _hlts.clear();
+
+    // Search for Trigger IDs
+    //
+    typedef const std::vector<std::string> Triggers;
+    
+    const Triggers &triggerNames = _hltConfigProvider.triggerNames();
+
+    typedef std::map<s8::Trigger::HLT, std::string> HLTs;
+
+    HLTs hlts;
+    hlts[Trigger::BTagMu_Jet10U]   = "HLT_BTagMu_Jet10U";
+    hlts[Trigger::BTagMu_Jet20U]   = "HLT_BTagMu_Jet20U";
+    hlts[Trigger::BTagMu_DiJet20U] = "HLT_BTagMu_DiJet20U";
+
+    for(Triggers::const_iterator trigger = triggerNames.begin();
+        triggerNames.end() != trigger;
+        ++trigger)
+    {
+        for(HLTs::const_iterator hlt = hlts.begin();
+            hlts.end() != hlt;
+            ++hlt)
+        {
+            smatch matches;
+            if (!regex_match(*trigger, matches,
+                             regex("^(" + hlt->second + ")(?:_v(\\d+))?$")))
+                continue;
+
+            // Found Trigger of the interest
+            //
+            HLT foundHLT;
+            foundHLT.name = *trigger;
+            foundHLT.id = distance(triggerNames.begin(), trigger);
+            foundHLT.version = matches[2].matched
+                ? lexical_cast<int>(matches[2])
+                : 0;
+
+            _hlts[hlt->first] = foundHLT;
+        }
+    }
+
+    if (_hlts.empty())
+        LogWarning("S8TreeMaker")
+            << "None of the searched HLT Triggers is found" << endl;
+
+    _didInitializeHltConfigProvider = true;
 }
 
 void S8TreeMaker::analyze(const edm::Event &event,
@@ -405,7 +467,8 @@ void S8TreeMaker::processPrimaryVertices(const edm::Event &event)
 void S8TreeMaker::processTriggers(const edm::Event &event,
                                   const edm::EventSetup &eventSetup)
 {
-    using s8::Trigger;
+    if (_hlts.empty())
+        return;
 
     // Triggers
     //
@@ -420,50 +483,23 @@ void S8TreeMaker::processTriggers(const edm::Event &event,
         return;
     }
 
-    // Get list of triggers
+    // Process only found HLTs
     //
-    typedef std::vector<std::string> Triggers;
-    const Triggers &triggerNames =
-        event.triggerNames(*triggers).triggerNames();
-
-    typedef std::map<s8::Trigger::HLT, std::string> HLTs;
-
-    HLTs hlts;
-    hlts[Trigger::BTagMu_Jet10U]   = "HLT_BTagMu_Jet10U";
-    hlts[Trigger::BTagMu_Jet20U]   = "HLT_BTagMu_Jet20U";
-    hlts[Trigger::BTagMu_DiJet20U] = "HLT_BTagMu_DiJet20U";
-
-    for(Triggers::const_iterator trigger = triggerNames.begin();
-        triggerNames.end() != trigger;
-        ++trigger)
+    for(HLTs::const_iterator hlt = _hlts.begin();
+        _hlts.end() != hlt;
+        ++hlt)
     {
-        for(HLTs::const_iterator hlt = hlts.begin();
-            hlts.end() != hlt;
-            ++hlt)
-        {
-            smatch matches;
-            if (!regex_match(*trigger, matches,
-                             regex("^(" + hlt->second + ")(?:_v(\\d+))?$")))
-                continue;
+        s8::Trigger s8Trigger;
+        s8Trigger.setHLT(hlt->first);
+        if (hlt->second.version)
+            s8Trigger.setVersion(hlt->second.version);
 
-            // Found Trigger of the interest
-            //
-            Trigger s8Trigger;
-            s8Trigger.setHLT(hlt->first);
-            
-            if (matches[2].matched)
-                s8Trigger.setVersion(lexical_cast<int>(matches[2]));
+        s8Trigger.setIsPass(triggers->accept(hlt->second.id));
+        s8Trigger.setPrescale(_hltConfigProvider.prescaleValue(event,
+            eventSetup, hlt->second.name));
 
-            s8Trigger.setIsPass(triggers->accept(distance(triggerNames.begin(),
-                                                         trigger)));
 
-            s8Trigger.setPrescale(_hltConfigProvider.prescaleValue(event,
-                        eventSetup, *trigger));
-
-            _event->triggers().push_back(s8Trigger);
-
-            break;
-        }
+        _event->triggers().push_back(s8Trigger);
     }
 }
 

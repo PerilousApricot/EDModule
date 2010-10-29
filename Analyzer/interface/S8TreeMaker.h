@@ -59,12 +59,24 @@ class S8TreeMaker : public edm::EDAnalyzer
         PFJetIDSelectionFunctor      _jetSelector;
         HLTConfigProvider            _hltConfigProvider;
 
+        struct HLT
+        {
+            std::string name;
+            int         id;
+            int         version;
+        };
+
+        typedef std::map<s8::Trigger::HLT, HLT>  HLTs;
+
+        HLTs _hlts;
+
         std::string _primaryVertices;
         std::string _jets;
         std::string _muons;
         std::string _electrons;
         std::string _triggers;
         bool        _isPythia;
+        bool        _didInitializeHltConfigProvider;
 };
 
 #endif
