@@ -83,6 +83,12 @@ S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
     if ("BTau" == inputType)
         _treeInfo->setInput(TreeInfo::BTau);
 
+    else if ("InclusiveMu5_Pt15" == inputType)
+    {
+        //_treeInfo->setInput(TreeInfo::InclusiveMu5_Pt15);
+        _isPythia = true;
+    }
+
     else if ("InclusiveMu5_Pt30" == inputType)
     {
         _treeInfo->setInput(TreeInfo::InclusiveMu5_Pt30);
@@ -240,6 +246,7 @@ void S8TreeMaker::analyze(const edm::Event &event,
         _event->gen().setPtHat(generator->qScale());
     }
 
+    processEventID(event);
     processElectrons(event);
     processJets(event);
     processMuons(event);
