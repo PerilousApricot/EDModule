@@ -13,5 +13,5 @@ S8TreeMaker = cms.EDAnalyzer(
 
     jetSelector = pfJetIDSelector.clone(),
 
-    inputType = cms.string("undefined")
+    isPythia = cms.bool(False)
 )

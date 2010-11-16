@@ -13,6 +13,8 @@
 #include <boost/regex.hpp>
 
 #include <TTree.h>
+#include <TLorentzVector.h>
+#include <TVector3.h>
 
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "DataFormats/Common/interface/Handle.h"
@@ -31,12 +33,17 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 
+#include "Tree/System8/interface/S8Event.h"
+#include "Tree/System8/interface/S8TreeInfo.h"
 #include "Tree/System8/interface/S8EventID.h"
 #include "Tree/System8/interface/S8GenEvent.h"
 #include "Tree/System8/interface/S8GenParticle.h"
 #include "Tree/System8/interface/S8Jet.h"
 #include "Tree/System8/interface/S8Lepton.h"
+#include "Tree/System8/interface/S8PrimaryVertex.h"
 #include "Tree/System8/interface/S8TreeInfo.h"
+#include "Tree/System8/interface/S8Trigger.h"
+#include "Tree/System8/interface/S8TriggerCenter.h"
 #include "EDModule/Analyzer/interface/Tools.h"
 
 #include "EDModule/Analyzer/interface/S8TreeMaker.h"
@@ -62,15 +69,13 @@ using edm::TriggerNames;
 using reco::Vertex;
 
 using s8::TreeInfo;
+using s8::TriggerCenter;
 
 using namespace top::tools;
 
 S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
-    _isPythia(false),
     _didInitializeHltConfigProvider(false)
 {
-    _treeInfo.reset(new TreeInfo);
-
     _primaryVertices = config.getParameter<string>("primaryVertices");
     _jets = config.getParameter<string>("jets");
     _muons = config.getParameter<string>("muons");
@@ -79,42 +84,7 @@ S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
 
     _jetSelector = config.getParameter<ParameterSet>("jetSelector");
 
-    const string inputType = config.getParameter<string>("inputType");
-    if ("BTau" == inputType)
-        _treeInfo->setInput(TreeInfo::BTau);
-
-    else if ("InclusiveMu5_Pt15" == inputType)
-    {
-        //_treeInfo->setInput(TreeInfo::InclusiveMu5_Pt15);
-        _isPythia = true;
-    }
-
-    else if ("InclusiveMu5_Pt30" == inputType)
-    {
-        _treeInfo->setInput(TreeInfo::InclusiveMu5_Pt30);
-        _isPythia = true;
-    }
-
-    else if ("InclusiveMu5_Pt50" == inputType)
-    {
-        _treeInfo->setInput(TreeInfo::InclusiveMu5_Pt50);
-        _isPythia = true;
-    }
-
-    else if ("InclusiveMu5_Pt150" == inputType)
-    {
-        _treeInfo->setInput(TreeInfo::InclusiveMu5_Pt150);
-        _isPythia = true;
-    }
-
-    else if ("TTbar" == inputType)
-        _treeInfo->setInput(TreeInfo::TTbar);
-
-    else if ("BBbar" == inputType)
-        _treeInfo->setInput(TreeInfo::BBbar);
-
-    else if ("ppMuX" == inputType)
-        _treeInfo->setInput(TreeInfo::ppMuX);
+    _isPythia = config.getParameter<bool>("isPythia");
 }
 
 S8TreeMaker::~S8TreeMaker()
@@ -123,14 +93,32 @@ S8TreeMaker::~S8TreeMaker()
 
 void S8TreeMaker::beginJob()
 {
+    cout << "Start BeginJob" << endl;
+
     edm::Service<TFileService> fileService;
+
+    _treeInfo.reset(new TreeInfo);
+    _triggerCenter.reset(new TriggerCenter);
 
     _tree = fileService->make<TTree>("s8", "System8 tree.");
 
+    cout << "Create Event" << endl;
+
     _event.reset(new s8::Event());
+
+    cout << "Event is created" << endl;
+
+    _event->manageMemory(true);
+
+    cout << "Set Branch" << endl;
+
     _tree->Branch("event", _event.get(), 32000, 0);
 
+    cout << "Branch is set" << endl;
+
     _didInitializeHltConfigProvider = false;
+
+    cout << "BeginJob is over" << endl;
 }
 
 void S8TreeMaker::endJob()
@@ -144,9 +132,10 @@ void S8TreeMaker::endJob()
 
     // Tree Info is disabled for the moment until Hadd is fixed
     //
-    //edm::Service<TFileService> fileService;
-    //TDirectory *dir = fileService->cd();
-    //dir->WriteObject(_treeInfo.get(), "s8info");
+    edm::Service<TFileService> fileService;
+    TDirectory *dir = fileService->cd();
+    dir->WriteObject(_treeInfo.get(), "s8info");
+    dir->WriteObject(_triggerCenter.get(), "s8triggers");
 }
 
 void S8TreeMaker::beginRun(const edm::Run &run,
@@ -174,43 +163,43 @@ void S8TreeMaker::beginRun(const edm::Run &run,
 
     _hlts.clear();
 
-    // Search for Trigger IDs
+    // Triggers are found and changed
     //
-    typedef const std::vector<std::string> Triggers;
-    
+    typedef std::vector<std::string> Triggers;
+
     const Triggers &triggerNames = _hltConfigProvider.triggerNames();
 
-    typedef std::map<s8::Trigger::HLT, std::string> HLTs;
+    using s8::tools::make_hash;
 
-    HLTs hlts;
-    hlts[Trigger::BTagMu_Jet10U]   = "HLT_BTagMu_Jet10U";
-    hlts[Trigger::BTagMu_Jet20U]   = "HLT_BTagMu_Jet20U";
-    hlts[Trigger::BTagMu_DiJet20U] = "HLT_BTagMu_DiJet20U";
+    TriggerCenter::TriggerMap &triggers = _triggerCenter->triggers();
 
     for(Triggers::const_iterator trigger = triggerNames.begin();
         triggerNames.end() != trigger;
         ++trigger)
     {
-        for(HLTs::const_iterator hlt = hlts.begin();
-            hlts.end() != hlt;
-            ++hlt)
+        smatch matches;
+        if (!regex_match(*trigger, matches,
+                         regex("^(\\w+)(?:_v(\\d+))?$")))
         {
-            smatch matches;
-            if (!regex_match(*trigger, matches,
-                             regex("^(" + hlt->second + ")(?:_v(\\d+))?$")))
-                continue;
+            cout << "Do not understand Trigger Name: " << *trigger
+                << endl;
 
-            // Found Trigger of the interest
-            //
-            HLT foundHLT;
-            foundHLT.name = *trigger;
-            foundHLT.id = distance(triggerNames.begin(), trigger);
-            foundHLT.version = matches[2].matched
-                ? lexical_cast<int>(matches[2])
-                : 0;
-
-            _hlts[hlt->first] = foundHLT;
+            continue;
         }
+
+        triggers.insert(make_pair(make_hash(matches[1]), matches[1]));
+
+        // Found Trigger of the interest
+        //
+        HLT foundHLT;
+
+        foundHLT.hash = make_hash(matches[1]);
+        foundHLT.id = distance(triggerNames.begin(), trigger);
+        foundHLT.version = matches[2].matched
+            ? lexical_cast<int>(matches[2])
+            : 0;
+
+        _hlts[*trigger] = foundHLT;
     }
 
     if (_hlts.empty())
@@ -243,7 +232,7 @@ void S8TreeMaker::analyze(const edm::Event &event,
             return;
         }
 
-        _event->gen().setPtHat(generator->qScale());
+        _event->gen()->setPtHat(generator->qScale());
     }
 
     processEventID(event);
@@ -258,11 +247,11 @@ void S8TreeMaker::analyze(const edm::Event &event,
 
 void S8TreeMaker::processEventID(const edm::Event &event)
 {
-    s8::EventID &id = _event->id();
+    s8::EventID *id = _event->id();
 
-    id.setRun(event.id().run());
-    id.setLumiBlock(event.id().luminosityBlock());
-    id.setEvent(event.id().event());
+    id->setRun(event.id().run());
+    id->setLumiBlock(event.id().luminosityBlock());
+    id->setEvent(event.id().event());
 }
 
 void S8TreeMaker::processElectrons(const edm::Event &event)
@@ -288,26 +277,26 @@ void S8TreeMaker::processElectrons(const edm::Event &event)
         electrons->end() != electron;
         ++electron)
     {
-        s8::Lepton s8Electron;
+        s8::Lepton *s8Electron = new s8::Lepton();;
 
-        setP4(s8Electron.p4(), electron->p4());
-        setVertex(s8Electron.vertex(), electron->vertex());
+        setP4(s8Electron->p4(), electron->p4());
+        setVertex(s8Electron->vertex(), electron->vertex());
 
-        s8Electron.impactParameter().first = electron->dB();
-        s8Electron.impactParameter().second = electron->edB();
+        s8Electron->impactParameter()->first = electron->dB();
+        s8Electron->impactParameter()->second = electron->edB();
 
         // Extract GenParticle information
         //
         if (electron->genLepton())
         {
-            s8::GenParticle &s8GenParticle = s8Electron.genParticle();
+            s8::GenParticle *s8GenParticle = s8Electron->genParticle();
 
-            setP4(s8GenParticle.p4(), electron->genLepton()->p4());
-            setVertex(s8GenParticle.vertex(), electron->genLepton()->vertex());
+            setP4(s8GenParticle->p4(), electron->genLepton()->p4());
+            setVertex(s8GenParticle->vertex(), electron->genLepton()->vertex());
 
-            s8GenParticle.setId(electron->genLepton()->pdgId());
+            s8GenParticle->setId(electron->genLepton()->pdgId());
             if (electron->genLepton()->mother())
-                s8GenParticle.setParentId(electron->genLepton()->mother()->pdgId());
+                s8GenParticle->setParentId(electron->genLepton()->mother()->pdgId());
         }
 
         _event->electrons().push_back(s8Electron);
@@ -342,32 +331,32 @@ void S8TreeMaker::processJets(const edm::Event &event)
             continue;
 
         using s8::Jet;
-        Jet s8Jet;
+        Jet *s8Jet = new Jet();
 
-        setP4(s8Jet.p4(), jet->p4());
+        setP4(s8Jet->p4(), jet->p4());
 
-        s8Jet.setFlavour(jet->partonFlavour());
-        s8Jet.setTracks(jet->associatedTracks().size());
+        s8Jet->setFlavour(jet->partonFlavour());
+        s8Jet->setTracks(jet->associatedTracks().size());
 
         // Save b-taggers
         //
-        s8Jet.setBTag(Jet::TCHE,
-                      jet->bDiscriminator("trackCountingHighEffBJetTags"));
+        s8Jet->setBTag(Jet::TCHE,
+                       jet->bDiscriminator("trackCountingHighEffBJetTags"));
 
-        s8Jet.setBTag(Jet::TCHP,
-                      jet->bDiscriminator("trackCountingHighPurBJetTags"));
+        s8Jet->setBTag(Jet::TCHP,
+                       jet->bDiscriminator("trackCountingHighPurBJetTags"));
 
-        s8Jet.setBTag(Jet::JP,
-                      jet->bDiscriminator("jetProbabilityBJetTags"));
+        s8Jet->setBTag(Jet::JP,
+                       jet->bDiscriminator("jetProbabilityBJetTags"));
 
-        s8Jet.setBTag(Jet::SSV,
-                      jet->bDiscriminator("simpleSecondaryVertexBJetTags"));
+        s8Jet->setBTag(Jet::SSV,
+                       jet->bDiscriminator("simpleSecondaryVertexBJetTags"));
 
-        s8Jet.setBTag(Jet::SSVHE,
-                      jet->bDiscriminator("simpleSecondaryVertexHighEffBJetTags"));
+        s8Jet->setBTag(Jet::SSVHE,
+                       jet->bDiscriminator("simpleSecondaryVertexHighEffBJetTags"));
 
-        s8Jet.setBTag(Jet::SSVHP,
-                      jet->bDiscriminator("simpleSecondaryVertexHighPurBJetTags"));
+        s8Jet->setBTag(Jet::SSVHP,
+                       jet->bDiscriminator("simpleSecondaryVertexHighPurBJetTags"));
 
         _event->jets().push_back(s8Jet);
     }
@@ -401,26 +390,26 @@ void S8TreeMaker::processMuons(const edm::Event &event)
         if (1 >= muon->numberOfMatches())
             continue;
 
-        s8::Lepton s8Muon;
+        s8::Lepton *s8Muon = new s8::Lepton();
 
-        setP4(s8Muon.p4(), muon->p4());
-        setVertex(s8Muon.vertex(), muon->vertex());
+        setP4(s8Muon->p4(), muon->p4());
+        setVertex(s8Muon->vertex(), muon->vertex());
 
-        s8Muon.impactParameter().first = muon->dB();
-        s8Muon.impactParameter().second = muon->edB();
+        s8Muon->impactParameter()->first = muon->dB();
+        s8Muon->impactParameter()->second = muon->edB();
 
         // Extract GenParticle information
         //
         if (muon->genLepton())
         {
-            s8::GenParticle &s8GenParticle = s8Muon.genParticle();
+            s8::GenParticle *s8GenParticle = s8Muon->genParticle();
 
-            setP4(s8GenParticle.p4(), muon->genLepton()->p4());
-            setVertex(s8GenParticle.vertex(), muon->genLepton()->vertex());
+            setP4(s8GenParticle->p4(), muon->genLepton()->p4());
+            setVertex(s8GenParticle->vertex(), muon->genLepton()->vertex());
 
-            s8GenParticle.setId(muon->genLepton()->pdgId());
+            s8GenParticle->setId(muon->genLepton()->pdgId());
             if (muon->genLepton()->mother())
-                s8GenParticle.setParentId(muon->genLepton()->mother()->pdgId());
+                s8GenParticle->setParentId(muon->genLepton()->mother()->pdgId());
         }
 
         _event->muons().push_back(s8Muon);
@@ -461,11 +450,11 @@ void S8TreeMaker::processPrimaryVertices(const edm::Event &event)
         if (!isGoodPrimaryVertex(*vertex, event.isRealData()))
             continue;
 
-        s8::PrimaryVertex s8Vertex;
+        s8::PrimaryVertex *s8Vertex = new s8::PrimaryVertex();
 
-        setVertex(s8Vertex.vertex(), vertex->position());
-        s8Vertex.setNdof(vertex->ndof());
-        s8Vertex.setRho(vertex->position().Rho());
+        setVertex(s8Vertex->vertex(), vertex->position());
+        s8Vertex->setNdof(vertex->ndof());
+        s8Vertex->setRho(vertex->position().Rho());
 
         _event->primaryVertices().push_back(s8Vertex);
     }
@@ -496,14 +485,14 @@ void S8TreeMaker::processTriggers(const edm::Event &event,
         _hlts.end() != hlt;
         ++hlt)
     {
-        s8::Trigger s8Trigger;
-        s8Trigger.setHLT(hlt->first);
+        s8::Trigger *s8Trigger = new s8::Trigger();
+        s8Trigger->setHash(hlt->second.hash);
         if (hlt->second.version)
-            s8Trigger.setVersion(hlt->second.version);
+            s8Trigger->setVersion(hlt->second.version);
 
-        s8Trigger.setIsPass(triggers->accept(hlt->second.id));
-        s8Trigger.setPrescale(_hltConfigProvider.prescaleValue(event,
-            eventSetup, hlt->second.name));
+        s8Trigger->setIsPass(triggers->accept(hlt->second.id));
+        s8Trigger->setPrescale(_hltConfigProvider.prescaleValue(event,
+            eventSetup, hlt->first));
 
 
         _event->triggers().push_back(s8Trigger);

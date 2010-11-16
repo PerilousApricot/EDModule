@@ -14,8 +14,7 @@
 
 #include "TFile.h"
 
-#include "Tree/System8/interface/S8Event.h"
-#include "Tree/System8/interface/S8TreeInfo.h"
+#include "Tree/System8/interface/S8Tools.h"
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -27,6 +26,13 @@ class TTree;
 namespace reco
 {
     class Vertex;
+}
+
+namespace s8
+{
+    class Event;
+    class TreeInfo;
+    class TriggerCenter;
 }
 
 class S8TreeMaker : public edm::EDAnalyzer
@@ -53,20 +59,22 @@ class S8TreeMaker : public edm::EDAnalyzer
 
         bool isGoodPrimaryVertex(const reco::Vertex &, const bool & = false); 
 
-        std::auto_ptr<s8::Event>     _event;
-        std::auto_ptr<s8::TreeInfo>  _treeInfo;
-        TTree                       *_tree;
-        PFJetIDSelectionFunctor      _jetSelector;
-        HLTConfigProvider            _hltConfigProvider;
+        std::auto_ptr<s8::Event>          _event;
+        std::auto_ptr<s8::TreeInfo>       _treeInfo;
+        std::auto_ptr<s8::TriggerCenter>  _triggerCenter;
+
+        TTree                            *_tree;
+        PFJetIDSelectionFunctor           _jetSelector;
+        HLTConfigProvider                 _hltConfigProvider;
 
         struct HLT
         {
-            std::string name;
-            int         id;
-            int         version;
+            s8::tools::Hash hash;
+            int             id;
+            int             version;
         };
 
-        typedef std::map<s8::Trigger::HLT, HLT>  HLTs;
+        typedef std::map<std::string, HLT>  HLTs;
 
         HLTs _hlts;
 

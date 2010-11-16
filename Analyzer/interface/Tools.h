@@ -52,6 +52,12 @@ namespace top
         void setVertex(TVector3 &,
                        const math::XYZPoint &);
 
+        inline void setVertex(TVector3 *v1,
+                              const math::XYZPoint &v2)
+        {
+            setVertex(*v1, v2);
+        }
+
         void setEnergy(top::Jet &, const reco::CaloJet::Specific &);
 
         void setIsolation(top::Muon &,

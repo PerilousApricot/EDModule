@@ -1,4 +1,6 @@
 <use name=root>
+<use name=boost>
+<use name=boost_regex>
 <use name=CommonTools/UtilAlgos>
 <use name=DataFormats/BeamSpot>
 <use name=DataFormats/Common>
