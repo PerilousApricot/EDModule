@@ -102,19 +102,10 @@ void S8TreeMaker::beginJob()
 
     _tree = fileService->make<TTree>("s8", "System8 tree.");
 
-    cout << "Create Event" << endl;
-
     _event.reset(new s8::Event());
-
-    cout << "Event is created" << endl;
-
     _event->manageMemory(true);
 
-    cout << "Set Branch" << endl;
-
     _tree->Branch("event", _event.get(), 32000, 0);
-
-    cout << "Branch is set" << endl;
 
     _didInitializeHltConfigProvider = false;
 
@@ -179,7 +170,7 @@ void S8TreeMaker::beginRun(const edm::Run &run,
     {
         smatch matches;
         if (!regex_match(*trigger, matches,
-                         regex("^(\\w+)(?:_v(\\d+))?$")))
+                         regex("^(\\w+?)(?:_[vV](\\d+))?$")))
         {
             cout << "Do not understand Trigger Name: " << *trigger
                 << endl;
