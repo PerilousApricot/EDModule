@@ -85,6 +85,7 @@ class S8TreeMaker : public edm::EDAnalyzer
         std::string _triggers;
         bool        _isPythia;
         bool        _didInitializeHltConfigProvider;
+        bool        _saveTriggers;
 };
 
 #endif

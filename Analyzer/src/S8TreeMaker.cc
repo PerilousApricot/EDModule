@@ -85,6 +85,7 @@ S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
     _jetSelector = config.getParameter<ParameterSet>("jetSelector");
 
     _isPythia = config.getParameter<bool>("isPythia");
+    _saveTriggers = config.getParameter<bool>("saveTriggers");
 }
 
 S8TreeMaker::~S8TreeMaker()
@@ -133,6 +134,12 @@ void S8TreeMaker::beginRun(const edm::Run &run,
                            const edm::EventSetup &eventSetup)
 {
     using s8::Trigger;
+
+    if (!_saveTriggers)
+    {
+        _didInitializeHltConfigProvider = true;
+        return;
+    }
 
     // Initialize HLT Config Provider for new Run
     //
@@ -231,7 +238,9 @@ void S8TreeMaker::analyze(const edm::Event &event,
     processJets(event);
     processMuons(event);
     processPrimaryVertices(event);
-    processTriggers(event, eventSetup);
+
+    if (_saveTriggers)
+        processTriggers(event, eventSetup);
 
     _tree->Fill();
 }
