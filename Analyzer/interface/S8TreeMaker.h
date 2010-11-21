@@ -15,6 +15,7 @@
 #include "TFile.h"
 
 #include "Tree/System8/interface/S8Tools.h"
+#include "Tree/System8/interface/S8Fwd.h"
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
@@ -30,7 +31,6 @@ namespace reco
 
 namespace s8
 {
-    class Event;
     class TreeInfo;
     class TriggerCenter;
 }
@@ -59,7 +59,14 @@ class S8TreeMaker : public edm::EDAnalyzer
 
         bool isGoodPrimaryVertex(const reco::Vertex &, const bool & = false); 
 
-        std::auto_ptr<s8::Event>          _event;
+        std::auto_ptr<s8::EventID>         _eventID;
+        std::auto_ptr<s8::GenEvent>        _genEvent;
+        std::auto_ptr<s8::Jets>            _s8Jets;
+        std::auto_ptr<s8::Leptons>         _s8Electrons;
+        std::auto_ptr<s8::Leptons>         _s8Muons;
+        std::auto_ptr<s8::PrimaryVertices> _s8PrimaryVertices;
+        std::auto_ptr<s8::Triggers>        _s8Triggers;
+
         std::auto_ptr<s8::TreeInfo>       _treeInfo;
         std::auto_ptr<s8::TriggerCenter>  _triggerCenter;
 

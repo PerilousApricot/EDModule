@@ -103,10 +103,28 @@ void S8TreeMaker::beginJob()
 
     _tree = fileService->make<TTree>("s8", "System8 tree.");
 
-    _event.reset(new s8::Event());
-    _event->manageMemory(true);
+    // Prepare Branches
+    //
+    _eventID.reset(new s8::EventID());
+    _tree->Branch("eventID", _eventID.get(), 32000, 0);
 
-    _tree->Branch("event", _event.get(), 32000, 0);
+    _genEvent.reset(new s8::GenEvent());
+    _tree->Branch("genEvent", _genEvent.get(), 32000, 0);
+
+    _s8Electrons.reset(new s8::Leptons());
+    _tree->Branch("electrons", _s8Electrons.get(), 32000, 0);
+
+    _s8Jets.reset(new s8::Jets());
+    _tree->Branch("jets", _s8Jets.get(), 32000, 0);
+
+    _s8Muons.reset(new s8::Leptons());
+    _tree->Branch("muons", _s8Muons.get(), 32000, 0);
+
+    _s8PrimaryVertices.reset(new s8::PrimaryVertices());
+    _tree->Branch("primaryVertices", _s8PrimaryVertices.get(), 32000, 0);
+
+    _s8Triggers.reset(new s8::Triggers());
+    _tree->Branch("triggers", _s8Triggers.get(), 32000, 0);
 
     _didInitializeHltConfigProvider = false;
 
@@ -115,12 +133,8 @@ void S8TreeMaker::beginJob()
 
 void S8TreeMaker::endJob()
 {
-    if (!_event.get())
+    if (!_tree)
         return;
-
-    // Note: Event should be destroyed after ROOT file is written and closed.
-    //
-    _event.reset();
 
     // Tree Info is disabled for the moment until Hadd is fixed
     //
@@ -134,12 +148,6 @@ void S8TreeMaker::beginRun(const edm::Run &run,
                            const edm::EventSetup &eventSetup)
 {
     using s8::Trigger;
-
-    if (!_saveTriggers)
-    {
-        _didInitializeHltConfigProvider = true;
-        return;
-    }
 
     // Initialize HLT Config Provider for new Run
     //
@@ -210,10 +218,9 @@ void S8TreeMaker::beginRun(const edm::Run &run,
 void S8TreeMaker::analyze(const edm::Event &event,
                           const edm::EventSetup &eventSetup)
 {
-    if (!_event.get())
-        return;
-
-    _event->reset();
+    if (!_tree)
+        throw cms::Exception("S8TreeMaker")
+            << "Tree does not exist";
 
     // check if Event is Pythia
     //
@@ -230,7 +237,7 @@ void S8TreeMaker::analyze(const edm::Event &event,
             return;
         }
 
-        _event->gen()->setPtHat(generator->qScale());
+        _genEvent->setPtHat(generator->qScale());
     }
 
     processEventID(event);
@@ -242,16 +249,61 @@ void S8TreeMaker::analyze(const edm::Event &event,
     if (_saveTriggers)
         processTriggers(event, eventSetup);
 
+    // Write Tree entry
+    //
     _tree->Fill();
+
+    // Reset event
+    //
+    _eventID->reset();
+    _genEvent->reset();
+
+    for(s8::Jets::iterator jet = _s8Jets->begin();
+        _s8Jets->end() != jet;
+        ++jet)
+    {
+        delete *jet;
+    }
+    _s8Jets->clear();
+
+    for(s8::Leptons::iterator electron = _s8Electrons->begin();
+        _s8Electrons->end() != electron;
+        ++electron)
+    {
+        delete *electron;
+    }
+    _s8Electrons->clear();
+
+    for(s8::Leptons::iterator muon = _s8Muons->begin();
+        _s8Muons->end() != muon;
+        ++muon)
+    {
+        delete *muon;
+    }
+    _s8Muons->clear();
+
+    for(s8::PrimaryVertices::iterator primaryVertex = _s8PrimaryVertices->begin();
+        _s8PrimaryVertices->end() != primaryVertex;
+        ++primaryVertex)
+    {
+        delete *primaryVertex;
+    }
+    _s8PrimaryVertices->clear();
+
+    for(s8::Triggers::iterator trigger = _s8Triggers->begin();
+        _s8Triggers->end() != trigger;
+        ++trigger)
+    {
+        delete *trigger;
+    }
+    _s8Triggers->clear();
 }
 
 void S8TreeMaker::processEventID(const edm::Event &event)
 {
-    s8::EventID *id = _event->id();
-
-    id->setRun(event.id().run());
-    id->setLumiBlock(event.id().luminosityBlock());
-    id->setEvent(event.id().event());
+    _eventID->setRun(event.id().run());
+    _eventID->setLumiBlock(event.id().luminosityBlock());
+    _eventID->setEvent(event.id().event());
 }
 
 void S8TreeMaker::processElectrons(const edm::Event &event)
@@ -299,7 +351,7 @@ void S8TreeMaker::processElectrons(const edm::Event &event)
                 s8GenParticle->setParentId(electron->genLepton()->mother()->pdgId());
         }
 
-        _event->electrons().push_back(s8Electron);
+        _s8Electrons->push_back(s8Electron);
     } // End loop over electrons
 }
 
@@ -358,7 +410,7 @@ void S8TreeMaker::processJets(const edm::Event &event)
         s8Jet->setBTag(Jet::SSVHP,
                        jet->bDiscriminator("simpleSecondaryVertexHighPurBJetTags"));
 
-        _event->jets().push_back(s8Jet);
+        _s8Jets->push_back(s8Jet);
     }
 }
 
@@ -412,7 +464,7 @@ void S8TreeMaker::processMuons(const edm::Event &event)
                 s8GenParticle->setParentId(muon->genLepton()->mother()->pdgId());
         }
 
-        _event->muons().push_back(s8Muon);
+        _s8Muons->push_back(s8Muon);
     } // End loop over muons
 }
 
@@ -456,7 +508,7 @@ void S8TreeMaker::processPrimaryVertices(const edm::Event &event)
         s8Vertex->setNdof(vertex->ndof());
         s8Vertex->setRho(vertex->position().Rho());
 
-        _event->primaryVertices().push_back(s8Vertex);
+        _s8PrimaryVertices->push_back(s8Vertex);
     }
 }
 
@@ -495,7 +547,7 @@ void S8TreeMaker::processTriggers(const edm::Event &event,
             eventSetup, hlt->first));
 
 
-        _event->triggers().push_back(s8Trigger);
+        _s8Triggers->push_back(s8Trigger);
     }
 }
 
