@@ -33,7 +33,6 @@
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 
-#include "Tree/System8/interface/S8Event.h"
 #include "Tree/System8/interface/S8TreeInfo.h"
 #include "Tree/System8/interface/S8EventID.h"
 #include "Tree/System8/interface/S8GenEvent.h"
