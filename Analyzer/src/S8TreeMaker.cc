@@ -346,6 +346,7 @@ void S8TreeMaker::processElectrons(const edm::Event &event)
             setVertex(s8GenParticle->vertex(), electron->genLepton()->vertex());
 
             s8GenParticle->setId(electron->genLepton()->pdgId());
+            s8GenParticle->setStatus(electron->genLepton()->status());
             if (electron->genLepton()->mother())
                 s8GenParticle->setParentId(electron->genLepton()->mother()->pdgId());
         }
@@ -388,6 +389,19 @@ void S8TreeMaker::processJets(const edm::Event &event)
 
         s8Jet->setFlavour(jet->partonFlavour());
         s8Jet->setTracks(jet->associatedTracks().size());
+
+        if (jet->genParton())
+        {
+            s8::GenParticle *s8GenParticle = s8Jet->genParticle();
+
+            setP4(s8GenParticle->p4(), jet->genParton()->p4());
+            setVertex(s8GenParticle->vertex(), jet->genParton()->vertex());
+
+            s8GenParticle->setId(jet->genParton()->pdgId());
+            s8GenParticle->setStatus(jet->genParton()->status());
+            if (jet->genParton()->mother())
+                s8GenParticle->setParentId(jet->genParton()->mother()->pdgId());
+        }
 
         // Save b-taggers
         //
@@ -459,6 +473,7 @@ void S8TreeMaker::processMuons(const edm::Event &event)
             setVertex(s8GenParticle->vertex(), muon->genLepton()->vertex());
 
             s8GenParticle->setId(muon->genLepton()->pdgId());
+            s8GenParticle->setStatus(muon->genLepton()->status());
             if (muon->genLepton()->mother())
                 s8GenParticle->setParentId(muon->genLepton()->mother()->pdgId());
         }
