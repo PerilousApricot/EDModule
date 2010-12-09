@@ -307,10 +307,12 @@ void S8TreeMaker::processGenEvent(const edm::Event &event)
 {
     using reco::GenParticleCollection;
 
+    if (event.isRealData())
+        return;
+
     // check if Event is Pythia
     //
-    if (_isPythia &&
-        !event.isRealData())
+    if (_isPythia)
     {
         Handle<GenEventInfoProduct> generator;
         event.getByLabel(InputTag("generator"), generator);
