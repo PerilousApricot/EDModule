@@ -105,25 +105,25 @@ void S8TreeMaker::beginJob()
     // Prepare Branches
     //
     _eventID.reset(new s8::EventID());
-    _tree->Branch("eventID", _eventID.get(), 32000, 0);
+    _tree->Branch("eventID.", _eventID.get());
 
     _genEvent.reset(new s8::GenEvent());
-    _tree->Branch("genEvent", _genEvent.get(), 32000, 0);
+    _tree->Branch("genEvent.", _genEvent.get());
 
     _s8Electrons.reset(new s8::Leptons());
-    _tree->Branch("electrons", _s8Electrons.get(), 32000, 0);
+    _tree->Branch("electrons.", _s8Electrons.get());
 
     _s8Jets.reset(new s8::Jets());
-    _tree->Branch("jets", _s8Jets.get(), 32000, 0);
+    _tree->Branch("jets.", _s8Jets.get());
 
     _s8Muons.reset(new s8::Leptons());
-    _tree->Branch("muons", _s8Muons.get(), 32000, 0);
+    _tree->Branch("muons.", _s8Muons.get());
 
     _s8PrimaryVertices.reset(new s8::PrimaryVertices());
-    _tree->Branch("primaryVertices", _s8PrimaryVertices.get(), 32000, 0);
+    _tree->Branch("primaryVertices.", _s8PrimaryVertices.get());
 
     _s8Triggers.reset(new s8::Triggers());
-    _tree->Branch("triggers", _s8Triggers.get(), 32000, 0);
+    _tree->Branch("triggers.", _s8Triggers.get());
 
     _didInitializeHltConfigProvider = false;
 
