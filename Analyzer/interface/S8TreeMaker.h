@@ -51,6 +51,7 @@ class S8TreeMaker : public edm::EDAnalyzer
         virtual void endJob();
 
         void processEventID(const edm::Event &);
+        void processGenEvent(const edm::Event &);
         void processElectrons(const edm::Event &);
         void processJets(const edm::Event &);
         void processMuons(const edm::Event &);

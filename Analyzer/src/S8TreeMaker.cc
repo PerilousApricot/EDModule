@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/logic/tribool.hpp>
 #include <boost/regex.hpp>
 
 #include <TTree.h>
@@ -71,6 +72,20 @@ using s8::TreeInfo;
 using s8::TriggerCenter;
 
 using namespace top::tools;
+
+void fillSplit(const int &status, boost::tribool &split)
+{
+    switch(status)
+    {
+        case 3: split = false;
+                break;
+
+        case 2: if (boost::indeterminate == split)
+                    split = true;
+
+                break;
+    }
+}
 
 S8TreeMaker::S8TreeMaker(const edm::ParameterSet &config):
     _didInitializeHltConfigProvider(false)
@@ -221,25 +236,8 @@ void S8TreeMaker::analyze(const edm::Event &event,
         throw cms::Exception("S8TreeMaker")
             << "Tree does not exist";
 
-    // check if Event is Pythia
-    //
-    if (_isPythia && !event.isRealData())
-    {
-        Handle<GenEventInfoProduct> generator;
-        event.getByLabel(InputTag("generator"), generator);
-
-        if (!generator.isValid())
-        {
-            LogWarning("S8TreeMaker")
-                << "failed to extract Generator";
-
-            return;
-        }
-
-        _genEvent->setPtHat(generator->qScale());
-    }
-
     processEventID(event);
+    processGenEvent(event);
     processElectrons(event);
     processJets(event);
     processMuons(event);
@@ -303,6 +301,59 @@ void S8TreeMaker::processEventID(const edm::Event &event)
     _eventID->setRun(event.id().run());
     _eventID->setLumiBlock(event.id().luminosityBlock());
     _eventID->setEvent(event.id().event());
+}
+
+void S8TreeMaker::processGenEvent(const edm::Event &event)
+{
+    using reco::GenParticleCollection;
+
+    // check if Event is Pythia
+    //
+    if (_isPythia &&
+        !event.isRealData())
+    {
+        Handle<GenEventInfoProduct> generator;
+        event.getByLabel(InputTag("generator"), generator);
+
+        if (!generator.isValid())
+        {
+            LogWarning("S8TreeMaker")
+                << "failed to extract Generator";
+
+            return;
+        }
+
+        _genEvent->setPtHat(generator->qScale());
+    }
+
+    Handle<GenParticleCollection> genParticles;
+    event.getByLabel(InputTag("genParticles"), genParticles);
+
+    boost::tribool bsplit = boost::indeterminate;
+    boost::tribool csplit = boost::indeterminate;
+    for(GenParticleCollection::const_iterator particle = genParticles->begin();
+        genParticles->end() != particle;
+        ++particle)
+    {
+        const int pdgID = abs(particle->pdgId());
+
+        switch(pdgID)
+        {
+            case 5: fillSplit(particle->status(), bsplit);
+                    break;
+
+            case 4: fillSplit(particle->status(), csplit);
+                    break;
+
+            default: break;
+        }
+    }
+
+    if (bsplit)
+        _genEvent->setGluonSplitting(s8::GenEvent::BB);
+
+    if (csplit)
+        _genEvent->setGluonSplitting(s8::GenEvent::CC);
 }
 
 void S8TreeMaker::processElectrons(const edm::Event &event)
