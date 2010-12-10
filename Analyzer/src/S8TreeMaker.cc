@@ -80,7 +80,7 @@ void fillSplit(const int &status, boost::tribool &split)
         case 3: split = false;
                 break;
 
-        case 2: if (boost::indeterminate == split)
+        case 2: if (boost::indeterminate(split))
                     split = true;
 
                 break;
@@ -120,25 +120,25 @@ void S8TreeMaker::beginJob()
     // Prepare Branches
     //
     _eventID.reset(new s8::EventID());
-    _tree->Branch("eventID.", _eventID.get());
+    _tree->Branch("eventID", _eventID.get());
 
     _genEvent.reset(new s8::GenEvent());
-    _tree->Branch("genEvent.", _genEvent.get());
+    _tree->Branch("genEvent", _genEvent.get());
 
     _s8Electrons.reset(new s8::Leptons());
     _tree->Branch("electrons.", _s8Electrons.get());
 
     _s8Jets.reset(new s8::Jets());
-    _tree->Branch("jets.", _s8Jets.get());
+    _tree->Branch("jets", _s8Jets.get());
 
     _s8Muons.reset(new s8::Leptons());
     _tree->Branch("muons.", _s8Muons.get());
 
     _s8PrimaryVertices.reset(new s8::PrimaryVertices());
-    _tree->Branch("primaryVertices.", _s8PrimaryVertices.get());
+    _tree->Branch("primaryVertices", _s8PrimaryVertices.get());
 
     _s8Triggers.reset(new s8::Triggers());
-    _tree->Branch("triggers.", _s8Triggers.get());
+    _tree->Branch("triggers", _s8Triggers.get());
 
     _didInitializeHltConfigProvider = false;
 
@@ -352,10 +352,10 @@ void S8TreeMaker::processGenEvent(const edm::Event &event)
     }
 
     if (bsplit)
-        _genEvent->setGluonSplitting(s8::GenEvent::BB);
+        _genEvent->setGluonSplitting(s8::GenEvent::BB, true);
 
     if (csplit)
-        _genEvent->setGluonSplitting(s8::GenEvent::CC);
+        _genEvent->setGluonSplitting(s8::GenEvent::CC, true);
 }
 
 void S8TreeMaker::processElectrons(const edm::Event &event)
